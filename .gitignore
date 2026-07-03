@@ -19,3 +19,4 @@ Thumbs.db
 # 作業中に発生した一時ファイル（スクリーンショット・ログ）
 スクリーンショット*.png
 *.log
+GITHUB_TOKEN.txt
