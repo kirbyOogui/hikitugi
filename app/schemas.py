@@ -49,7 +49,31 @@ class HandoverPhotoOut(BaseModel):
     url: str
 
 
+class HandoverPhotoIn(BaseModel):
+    """クライアントがCloudinaryへ直接アップロード済みの写真情報（作成・編集時の入力）。"""
+
+    url: str
+    public_id: str
+
+
 # --- 引継ぎ ---------------------------------------------------------
+
+
+class HandoverCreate(BaseModel):
+    """引継ぎ追加のリクエストボディ。"""
+
+    category_id: int
+    body: str = Field(min_length=1)
+    photos: list[HandoverPhotoIn] = []
+
+
+class HandoverUpdate(BaseModel):
+    """引継ぎ編集のリクエストボディ。"""
+
+    category_id: int
+    body: str = Field(min_length=1)
+    photos: list[HandoverPhotoIn] = []
+    delete_photo_ids: list[int] = []
 
 
 class HandoverOut(BaseModel):

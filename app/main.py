@@ -13,7 +13,7 @@ from sqlalchemy import select
 
 from app.database import Base, SessionLocal, engine
 from app.models import Category
-from app.routers import categories, garbage, handovers, lost_items, soldout
+from app.routers import categories, garbage, handovers, lost_items, soldout, uploads
 
 # 初期カテゴリ（表示順もこの並びで登録する）
 INITIAL_CATEGORIES = ["ブース席", "カラオケ", "2R", "その他"]
@@ -49,6 +49,7 @@ app.include_router(handovers.router)
 app.include_router(soldout.router)
 app.include_router(lost_items.router)
 app.include_router(garbage.router)
+app.include_router(uploads.router)
 
 # 静的ファイル（CSS/JS）配信。index.html/settings.html自体は下の個別routeで返す。
 app.mount("/static", StaticFiles(directory="static"), name="static")

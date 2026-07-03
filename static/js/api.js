@@ -50,13 +50,46 @@ const api = {
 
   // --- 引継ぎ ---
   getHandovers: (status) => request(`/handovers?status=${status}`),
-  createHandover: (formData) =>
-    request("/handovers", { method: "POST", body: formData }),
-  updateHandover: (id, formData) =>
-    request(`/handovers/${id}`, { method: "PUT", body: formData }),
+  createHandover: (payload) =>
+    request("/handovers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  updateHandover: (id, payload) =>
+    request(`/handovers/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
   markHandoverDone: (id) => request(`/handovers/${id}/done`, { method: "PUT" }),
   reopenHandover: (id) => request(`/handovers/${id}/reopen`, { method: "PUT" }),
   deleteHandover: (id) => request(`/handovers/${id}`, { method: "DELETE" }),
+
+  // --- 写真アップロード（Cloudinaryへ直接） ---
+  getUploadSignature: () => request("/uploads/signature"),
+  /**
+   * 圧縮済みファイルを、署名付きでCloudinaryへ直接アップロードする
+   * （Renderサーバーを経由しないため、サーバー転送分の時間を短縮できる）。
+   */
+  uploadPhotoToCloudinary: async (file) => {
+    const sig = await api.getUploadSignature();
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("api_key", sig.api_key);
+    formData.append("timestamp", sig.timestamp);
+    formData.append("signature", sig.signature);
+    formData.append("folder", sig.folder);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      throw new Error("写真のアップロードに失敗しました");
+    }
+    return res.json();
+  },
 
   // --- 売切商品 ---
   getSoldoutItems: () => request("/soldout"),

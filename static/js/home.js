@@ -429,27 +429,27 @@ function renderExistingPhotos(photos) {
 
 document.getElementById("handover-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const categoryId = document.getElementById("handover-category").value;
+  const categoryId = Number(document.getElementById("handover-category").value);
   const body = document.getElementById("handover-body").value;
   const photoInput = document.getElementById("handover-photos");
-
-  const formData = new FormData();
-  formData.append("category_id", categoryId);
-  formData.append("body", body);
-  for (const photoId of photoIdsToDelete) {
-    formData.append("delete_photo_ids", photoId);
-  }
 
   const submitBtn = e.target.querySelector("button[type=submit]");
   submitBtn.disabled = true;
   try {
+    // 圧縮 → Cloudinaryへ直接アップロード（Renderサーバーを経由しない）
+    const photos = [];
     for (const file of photoInput.files) {
-      formData.append("photos", await compressImage(file));
+      const compressed = await compressImage(file);
+      const uploaded = await api.uploadPhotoToCloudinary(compressed);
+      photos.push({ url: uploaded.secure_url, public_id: uploaded.public_id });
     }
+
+    const payload = { category_id: categoryId, body, photos };
     if (editingHandoverId === null) {
-      await api.createHandover(formData);
+      await api.createHandover(payload);
     } else {
-      await api.updateHandover(editingHandoverId, formData);
+      payload.delete_photo_ids = Array.from(photoIdsToDelete);
+      await api.updateHandover(editingHandoverId, payload);
     }
     e.target.reset();
     closeSheets();

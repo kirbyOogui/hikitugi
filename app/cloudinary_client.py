@@ -3,9 +3,11 @@
 APIキーはサーバー側のみで保持し、フロントエンドには一切渡さない
 （バックエンド経由アップロードにすることでキー漏洩を防ぐ）。
 """
+import time
+
 import cloudinary
 import cloudinary.uploader
-from fastapi import UploadFile
+import cloudinary.utils
 
 from app.config import get_settings
 
@@ -22,10 +24,23 @@ cloudinary.config(
 UPLOAD_FOLDER = "handover-app"
 
 
-def upload_photo(file: UploadFile) -> tuple[str, str]:
-    """画像ファイルをCloudinaryにアップロードし、(配信URL, public_id)を返す。"""
-    result = cloudinary.uploader.upload(file.file, folder=UPLOAD_FOLDER)
-    return result["secure_url"], result["public_id"]
+def generate_upload_signature() -> dict:
+    """ブラウザからCloudinaryへ直接アップロードするための署名を発行する。
+
+    APIシークレットはサーバー側のみで保持し、署名だけをフロントに渡すことで
+    キー漏洩を防ぎつつ、写真アップロードがRenderサーバーを経由しない分
+    高速化できる。
+    """
+    timestamp = int(time.time())
+    params_to_sign = {"timestamp": timestamp, "folder": UPLOAD_FOLDER}
+    signature = cloudinary.utils.api_sign_request(params_to_sign, settings.cloudinary_api_secret)
+    return {
+        "timestamp": timestamp,
+        "signature": signature,
+        "api_key": settings.cloudinary_api_key,
+        "cloud_name": settings.cloudinary_cloud_name,
+        "folder": UPLOAD_FOLDER,
+    }
 
 
 def delete_photo(public_id: str) -> None:
