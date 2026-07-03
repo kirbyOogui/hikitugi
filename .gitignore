@@ -1,0 +1,21 @@
+# 環境変数（秘密情報のためコミットしない）
+.env
+
+# ローカル動作確認用のSQLite DB（run_local.batで生成される）
+dev_local.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# エディタ・OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 作業中に発生した一時ファイル（スクリーンショット・ログ）
+スクリーンショット*.png
+*.log

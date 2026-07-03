@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>引継書</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー: 日付・タイトル・ゴミ庫トグル -->
+    <header class="header">
+      <div>
+        <div class="header__date" id="today-date"></div>
+        <h1 class="header__title">引継書</h1>
+      </div>
+      <div class="garbage-toggle">
+        <span class="garbage-toggle__label">ゴミ庫</span>
+        <button id="garbage-toggle-btn" class="garbage-toggle__btn" data-status="empty">空</button>
+      </div>
+    </header>
+
+    <!-- 売切商品（中身はhome.jsで描画。空の場合は1行にコンパクト表示） -->
+    <section id="soldout-card" class="card"></section>
+
+    <!-- 忘れ物（中身はhome.jsで描画。空の場合は1行にコンパクト表示） -->
+    <section id="lost-card" class="card"></section>
+
+    <!-- カテゴリごとの引継ぎ一覧（JSで動的生成、引継ぎがあるカテゴリのみ表示） -->
+    <div id="categories-container"></div>
+  </div>
+
+  <!-- FAB: 引継ぎ追加 / 売切商品追加 / 忘れ物追加 -->
+  <div class="fab-container">
+    <div id="fab-menu" class="fab-menu hidden">
+      <button id="fab-add-handover">📝 引継ぎ追加</button>
+      <button id="fab-add-soldout">🛒 売切商品追加</button>
+      <button id="fab-add-lost">🔍 忘れ物追加</button>
+    </div>
+    <button id="fab-toggle" class="fab" aria-label="追加メニューを開く">＋</button>
+  </div>
+
+  <!-- 設定画面への導線 -->
+  <a href="/settings" class="settings-fab" aria-label="設定">⚙</a>
+
+  <!-- 引継ぎ追加シート -->
+  <div id="sheet-overlay" class="sheet-overlay hidden">
+    <div id="sheet-handover" class="bottom-sheet hidden">
+      <div class="sheet-header">
+        <h2 id="handover-sheet-title">引継ぎ追加</h2>
+        <button class="icon-btn sheet-close">✕</button>
+      </div>
+      <form id="handover-form">
+        <div class="form-group">
+          <label for="handover-category">カテゴリ</label>
+          <div style="display: flex; gap: 8px;">
+            <select id="handover-category" required style="flex: 1;"></select>
+            <button type="button" id="handover-category-add-toggle" class="btn btn-outline">＋新規</button>
+          </div>
+          <div id="handover-category-add-row" class="hidden" style="display: flex; gap: 8px; margin-top: 8px;">
+            <input type="text" id="handover-category-add-input" placeholder="新しいカテゴリ名" style="flex: 1; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 15px;" />
+            <button type="button" id="handover-category-add-confirm" class="btn btn-primary">追加</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="handover-body">本文</label>
+          <textarea id="handover-body" required></textarea>
+        </div>
+        <!-- 編集時のみ表示。既存写真の一覧と削除予約(×)ボタン -->
+        <div class="form-group hidden" id="handover-existing-photos-group">
+          <label>現在の写真（×で削除されます）</label>
+          <div id="handover-existing-photos" class="existing-photos"></div>
+        </div>
+        <div class="form-group">
+          <label for="handover-photos">写真を追加（任意・複数可）</label>
+          <input type="file" id="handover-photos" accept="image/*" multiple />
+        </div>
+        <button type="submit" id="handover-submit-btn" class="btn btn-primary btn-block">登録する</button>
+      </form>
+    </div>
+
+    <!-- 売切商品追加シート -->
+    <div id="sheet-soldout" class="bottom-sheet hidden">
+      <div class="sheet-header">
+        <h2>売切商品追加</h2>
+        <button class="icon-btn sheet-close">✕</button>
+      </div>
+      <form id="soldout-form">
+        <div class="form-group">
+          <label for="soldout-name">商品名</label>
+          <input type="text" id="soldout-name" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">登録する</button>
+      </form>
+    </div>
+
+    <!-- 忘れ物追加シート -->
+    <div id="sheet-lost" class="bottom-sheet hidden">
+      <div class="sheet-header">
+        <h2>忘れ物追加</h2>
+        <button class="icon-btn sheet-close">✕</button>
+      </div>
+      <form id="lost-form">
+        <div class="form-group">
+          <label for="lost-name">忘れ物の内容</label>
+          <input type="text" id="lost-name" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">登録する</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 写真拡大表示 -->
+  <div id="lightbox" class="lightbox hidden">
+    <img id="lightbox-img" src="" alt="拡大写真" />
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/utils.js"></script>
+  <script src="/static/js/home.js"></script>
+</body>
+</html>
