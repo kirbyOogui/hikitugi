@@ -436,9 +436,6 @@ document.getElementById("handover-form").addEventListener("submit", async (e) =>
   const formData = new FormData();
   formData.append("category_id", categoryId);
   formData.append("body", body);
-  for (const file of photoInput.files) {
-    formData.append("photos", file);
-  }
   for (const photoId of photoIdsToDelete) {
     formData.append("delete_photo_ids", photoId);
   }
@@ -446,6 +443,9 @@ document.getElementById("handover-form").addEventListener("submit", async (e) =>
   const submitBtn = e.target.querySelector("button[type=submit]");
   submitBtn.disabled = true;
   try {
+    for (const file of photoInput.files) {
+      formData.append("photos", await compressImage(file));
+    }
     if (editingHandoverId === null) {
       await api.createHandover(formData);
     } else {

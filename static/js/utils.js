@@ -36,3 +36,41 @@ function buildTextWithHighlightedDates(text) {
 
   return fragment;
 }
+
+/**
+ * 画像ファイルをアップロード前にリサイズ・圧縮する。
+ * スマホ写真は数MBになることが多く、そのままアップロードすると
+ * （特に無料ホスティングの帯域では）体感速度が大きく悪化するため、
+ * 長辺1600pxを超える場合は縮小し、JPEG品質0.8で再エンコードする。
+ * 画像以外のファイルや変換に失敗した場合は元ファイルをそのまま返す。
+ */
+async function compressImage(file, maxDimension = 1600, quality = 0.8) {
+  if (!file.type.startsWith("image/")) {
+    return file;
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", quality)
+    );
+    if (!blob || blob.size >= file.size) {
+      return file;
+    }
+
+    const newName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], newName, { type: "image/jpeg" });
+  } catch (err) {
+    console.warn("画像圧縮に失敗したため元ファイルをアップロードします", err);
+    return file;
+  }
+}
