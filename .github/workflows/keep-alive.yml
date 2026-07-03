@@ -1,0 +1,14 @@
+name: Keep Render service awake
+
+on:
+  schedule:
+    # Renderの無料プランは15分間アクセスが無いとスリープするため、10分おきにアクセスして防ぐ
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the app
+        run: curl -fsS --max-time 60 https://hikitugi.onrender.com/ -o /dev/null
