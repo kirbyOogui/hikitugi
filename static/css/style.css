@@ -163,6 +163,11 @@ button {
 
 /* ---------- 引継ぎ一覧 ---------- */
 
+/* 売切商品・忘れ物カードと並び替えて表示される際も間隔が一定になるようにする */
+#categories-container {
+  margin-bottom: 16px;
+}
+
 .handover-list {
   display: flex;
   flex-direction: column;

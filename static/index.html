@@ -20,14 +20,18 @@
       </div>
     </header>
 
-    <!-- 売切商品（中身はhome.jsで描画。空の場合は1行にコンパクト表示） -->
-    <section id="soldout-card" class="card"></section>
+    <!-- 売切商品・忘れ物・引継ぎの3セクション。0件（空表示）のものが上に来るよう
+         home.jsのreorderHomeSections()でJS側から順番を並び替える -->
+    <div id="home-sections">
+      <!-- 売切商品（中身はhome.jsで描画。空の場合は1行にコンパクト表示） -->
+      <section id="soldout-card" class="card"></section>
 
-    <!-- 忘れ物（中身はhome.jsで描画。空の場合は1行にコンパクト表示） -->
-    <section id="lost-card" class="card"></section>
+      <!-- 忘れ物（中身はhome.jsで描画。空の場合は1行にコンパクト表示） -->
+      <section id="lost-card" class="card"></section>
 
-    <!-- 引継ぎ一覧（JSで動的生成。カテゴリはカードのタグ表示のみで、全件を1本のリストとしてドラッグ&ドロップ並び替え可能） -->
-    <div id="categories-container"></div>
+      <!-- 引継ぎ一覧（JSで動的生成。カテゴリはカードのタグ表示のみで、全件を1本のリストとしてドラッグ&ドロップ並び替え可能） -->
+      <div id="categories-container"></div>
+    </div>
   </div>
 
   <!-- FAB: 引継ぎ追加 / 売切商品追加 / 忘れ物追加 -->

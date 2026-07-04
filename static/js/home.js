@@ -56,6 +56,26 @@ async function loadAll() {
   renderSoldout(soldoutItems);
   renderLostItems(lostItems);
   renderHandoverList(handovers);
+  reorderHomeSections();
+}
+
+/**
+ * 売切商品・忘れ物・引継ぎの3セクションを、0件（空表示）のものが上に来るよう並べ替える。
+ * 各セクションが空かどうかは、共通の空表示に使われる.handover-emptyの有無で判定する。
+ */
+function reorderHomeSections() {
+  const container = document.getElementById("home-sections");
+  const sections = ["soldout-card", "lost-card", "categories-container"].map((id) =>
+    document.getElementById(id)
+  );
+  const isEmpty = (el) => el.querySelector(".handover-empty") !== null;
+
+  for (const el of sections.filter(isEmpty)) {
+    container.appendChild(el);
+  }
+  for (const el of sections.filter((el) => !isEmpty(el))) {
+    container.appendChild(el);
+  }
 }
 
 // --- ゴミ庫 ---
