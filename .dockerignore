@@ -1,0 +1,10 @@
+.env
+.git
+.github
+__pycache__
+*.pyc
+dev_local.db
+dev_local_test*.db
+*.log
+記録.txt
+スクリーンショット*.png

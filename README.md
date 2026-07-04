@@ -8,7 +8,7 @@
 - Frontend: HTML / CSS / JavaScript（素のJS、ビルド不要。並び替えのみSortableJSをCDNで使用）
 - DB: PostgreSQL + SQLAlchemy
 - 画像: Cloudinary
-- Deploy: Render
+- Deploy: Google Cloud Run（Dockerfileでコンテナ化）
 
 ## ディレクトリ構成
 
@@ -47,7 +47,7 @@ static/
    cp .env.example .env
    ```
 
-   - `DATABASE_URL`: ローカルまたはRenderのPostgreSQL接続文字列
+   - `DATABASE_URL`: ローカルまたはNeonのPostgreSQL接続文字列
    - `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET`: Cloudinaryダッシュボードの値
 
 3. サーバーを起動
@@ -60,15 +60,19 @@ static/
 
 4. ブラウザで `http://127.0.0.1:8000/` （ホーム画面）・`http://127.0.0.1:8000/settings` （設定画面）を開く。
 
-## Renderへのデプロイ手順（概要）
+## Google Cloud Runへのデプロイ手順（概要）
+
+無料枠の範囲で運用するため、PostgreSQLはNeon、ホスティングはGoogle Cloud Runを使う構成にしている
+（Renderの無料プランはスリープ復帰に50秒前後かかるため、コールドスタートが数秒程度で済むCloud Runに移行した）。
+リポジトリ直下の`Dockerfile`でコンテナ化する。
 
 1. GitHubにリポジトリをpush
-2. Renderで PostgreSQL（Managed Database）を作成し、Internal Database URLを控える
-3. RenderでWeb Serviceを作成し、このリポジトリを接続
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-4. Web ServiceのEnvironment変数に `DATABASE_URL`（手順2のURL）、`CLOUDINARY_CLOUD_NAME`、`CLOUDINARY_API_KEY`、`CLOUDINARY_API_SECRET` を設定
-5. デプロイ後、初回アクセス時にテーブル作成・初期カテゴリseedが自動実行される
+2. Neonで PostgreSQL プロジェクトを作成し、接続文字列を控える
+3. Google Cloudでプロジェクトを作成し、Cloud Run / Cloud Build APIを有効化
+4. Cloud Runで「継続的デプロイ」を選び、このGitHubリポジトリ（mainブランチ、Dockerfileビルド）を接続
+5. Cloud Runの環境変数に `DATABASE_URL`（手順2の接続文字列）、`CLOUDINARY_CLOUD_NAME`、`CLOUDINARY_API_KEY`、`CLOUDINARY_API_SECRET` を設定
+6. 未認証呼び出し（一般公開）を許可してデプロイ
+7. デプロイ後、初回アクセス時にテーブル作成・初期カテゴリseedが自動実行される
 
 ## 主な仕様メモ
 
