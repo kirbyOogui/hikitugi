@@ -108,6 +108,11 @@ class SoldoutItem(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # 引継ぎと同じ考え方で、売り切れ解消時は削除ではなく対応済みにし、
+    # 設定画面の「売切商品 対応済み」から再登録・完全削除できるようにする。
+    status: Mapped[str] = mapped_column(
+        String(10), nullable=False, default=HANDOVER_STATUS_ACTIVE
+    )
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -120,6 +125,9 @@ class LostItem(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(10), nullable=False, default=HANDOVER_STATUS_ACTIVE
+    )
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

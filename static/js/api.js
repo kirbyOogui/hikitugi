@@ -109,23 +109,39 @@ const api = {
   },
 
   // --- 売切商品 ---
-  getSoldoutItems: () => request("/soldout"),
+  getSoldoutItems: (status = "active") => request(`/soldout?status=${status}`),
   createSoldoutItem: (name) =>
     request("/soldout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     }),
+  updateSoldoutItem: (id, name) =>
+    request(`/soldout/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+  markSoldoutItemDone: (id) => request(`/soldout/${id}/done`, { method: "PUT" }),
+  reopenSoldoutItem: (id) => request(`/soldout/${id}/reopen`, { method: "PUT" }),
   deleteSoldoutItem: (id) => request(`/soldout/${id}`, { method: "DELETE" }),
 
   // --- 忘れ物 ---
-  getLostItems: () => request("/lost-items"),
+  getLostItems: (status = "active") => request(`/lost-items?status=${status}`),
   createLostItem: (name) =>
     request("/lost-items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     }),
+  updateLostItem: (id, name) =>
+    request(`/lost-items/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+  markLostItemDone: (id) => request(`/lost-items/${id}/done`, { method: "PUT" }),
+  reopenLostItem: (id) => request(`/lost-items/${id}/reopen`, { method: "PUT" }),
   deleteLostItem: (id) => request(`/lost-items/${id}`, { method: "DELETE" }),
 
   // --- ゴミ庫 ---

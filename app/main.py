@@ -55,17 +55,15 @@ def _ensure_handover_sort_order_column() -> None:
             )
 
 
-def _ensure_handover_is_pinned_column() -> None:
-    """handoversテーブルにis_pinned列が無ければ追加する（Alembic未導入のための簡易マイグレーション）。"""
+def _ensure_column(table: str, column: str, add_column_sql: str) -> None:
+    """指定テーブルに列が無ければ追加する（Alembic未導入のための簡易マイグレーション）。"""
     inspector = inspect(engine)
-    columns = {col["name"] for col in inspector.get_columns("handovers")}
-    if "is_pinned" in columns:
+    columns = {col["name"] for col in inspector.get_columns(table)}
+    if column in columns:
         return
 
     with engine.begin() as conn:
-        conn.execute(
-            text("ALTER TABLE handovers ADD COLUMN is_pinned BOOLEAN NOT NULL DEFAULT FALSE")
-        )
+        conn.execute(text(add_column_sql))
 
 
 @asynccontextmanager
@@ -73,7 +71,19 @@ async def lifespan(app: FastAPI):
     """起動時にテーブル作成・初期カテゴリseedを行うlifespanハンドラ。"""
     Base.metadata.create_all(bind=engine)
     _ensure_handover_sort_order_column()
-    _ensure_handover_is_pinned_column()
+    _ensure_column(
+        "handovers", "is_pinned", "ALTER TABLE handovers ADD COLUMN is_pinned BOOLEAN NOT NULL DEFAULT FALSE"
+    )
+    _ensure_column(
+        "soldout_items",
+        "status",
+        "ALTER TABLE soldout_items ADD COLUMN status VARCHAR(10) NOT NULL DEFAULT 'active'",
+    )
+    _ensure_column(
+        "lost_items",
+        "status",
+        "ALTER TABLE lost_items ADD COLUMN status VARCHAR(10) NOT NULL DEFAULT 'active'",
+    )
     _seed_initial_categories()
     yield
 

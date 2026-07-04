@@ -176,6 +176,81 @@ function renderDoneList(items) {
   }
 }
 
+// --- 売切商品 / 忘れ物 対応済み一覧（名前のみなので共通関数で描画する） ---
+
+function renderSimpleDoneList(listEl, items, emptyText, { onReopen, onDelete, reload }) {
+  listEl.innerHTML = "";
+
+  if (items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-message";
+    empty.textContent = emptyText;
+    listEl.appendChild(empty);
+    return;
+  }
+
+  for (const item of items) {
+    const row = document.createElement("div");
+    row.className = "done-row";
+    row.innerHTML = `
+      <p class="done-row__body"></p>
+      <div class="done-row__actions">
+        <button class="btn btn-outline done-row__reopen">再登録</button>
+        <button class="btn btn-danger done-row__delete">完全削除</button>
+      </div>
+    `;
+    row.querySelector(".done-row__body").textContent = item.name;
+
+    row.querySelector(".done-row__reopen").addEventListener("click", async () => {
+      try {
+        await onReopen(item.id);
+        await reload();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+    row.querySelector(".done-row__delete").addEventListener("click", async () => {
+      if (!confirm("完全に削除します。よろしいですか？")) return;
+      try {
+        await onDelete(item.id);
+        await reload();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    listEl.appendChild(row);
+  }
+}
+
+async function loadSoldoutDoneList() {
+  const items = await api.getSoldoutItems("done");
+  renderSimpleDoneList(
+    document.getElementById("soldout-done-list"),
+    items,
+    "対応済みの売切商品はありません",
+    {
+      onReopen: (id) => api.reopenSoldoutItem(id),
+      onDelete: (id) => api.deleteSoldoutItem(id),
+      reload: loadSoldoutDoneList,
+    }
+  );
+}
+
+async function loadLostDoneList() {
+  const items = await api.getLostItems("done");
+  renderSimpleDoneList(
+    document.getElementById("lost-done-list"),
+    items,
+    "対応済みの忘れ物はありません",
+    {
+      onReopen: (id) => api.reopenLostItem(id),
+      onDelete: (id) => api.deleteLostItem(id),
+      reload: loadLostDoneList,
+    }
+  );
+}
+
 // --- 表示設定 ---
 
 async function loadDisplaySettings() {
@@ -217,6 +292,10 @@ document.querySelectorAll(".panel-back").forEach((btn) => {
 
 // --- 初期化 ---
 
-Promise.all([loadCategories(), loadDoneList(), loadDisplaySettings()]).catch((err) =>
-  alert(err.message)
-);
+Promise.all([
+  loadCategories(),
+  loadDoneList(),
+  loadDisplaySettings(),
+  loadSoldoutDoneList(),
+  loadLostDoneList(),
+]).catch((err) => alert(err.message));

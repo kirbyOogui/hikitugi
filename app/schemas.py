@@ -107,6 +107,12 @@ class SoldoutItemCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
 
 
+class SoldoutItemUpdate(BaseModel):
+    """売切商品名編集のリクエストボディ。"""
+
+    name: str = Field(min_length=1, max_length=100)
+
+
 class SoldoutItemOut(BaseModel):
     """売切商品のレスポンス。"""
 
@@ -114,6 +120,7 @@ class SoldoutItemOut(BaseModel):
 
     id: int
     name: str
+    status: Literal["active", "done"]
     created_at: datetime.datetime
 
 
@@ -126,6 +133,12 @@ class LostItemCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
 
 
+class LostItemUpdate(BaseModel):
+    """忘れ物名編集のリクエストボディ。"""
+
+    name: str = Field(min_length=1, max_length=100)
+
+
 class LostItemOut(BaseModel):
     """忘れ物のレスポンス。"""
 
@@ -133,6 +146,7 @@ class LostItemOut(BaseModel):
 
     id: int
     name: str
+    status: Literal["active", "done"]
     created_at: datetime.datetime
 
 

@@ -77,13 +77,15 @@ async function toggleGarbage() {
   }
 }
 
-// --- 売切商品 / 忘れ物（どちらも「名前だけの一覧＋削除」という同じ構造なので共通関数で描画する） ---
+// --- 売切商品 / 忘れ物（どちらも「名前だけの一覧＋編集/対応済み」という同じ構造なので共通関数で描画する） ---
 
 /**
  * 名前のみを持つ項目一覧（売切商品・忘れ物）を描画する。
  * 0件のときは引継ぎと同様、カード枠を外して文字のみの表示にする。
+ * 各項目は「編集」でその場で名前を書き換えられ、「✓対応済み」で
+ * 引継ぎと同じように一覧から消えて対応済み一覧（設定画面）へ移動する。
  */
-function renderItemListCard(container, items, { title, emptyText, onDelete }) {
+function renderItemListCard(container, items, { title, emptyText, onUpdate, onMarkDone }) {
   container.innerHTML = "";
 
   if (items.length === 0) {
@@ -113,31 +115,69 @@ function renderItemListCard(container, items, { title, emptyText, onDelete }) {
     nameEl.className = "simple-item__name";
     nameEl.textContent = item.name;
 
-    const deleteBtn = document.createElement("button");
-    deleteBtn.className = "icon-btn";
-    deleteBtn.setAttribute("aria-label", "削除");
-    deleteBtn.textContent = "🗑";
-    deleteBtn.addEventListener("click", () => onDelete(item.id));
+    const actions = document.createElement("div");
+    actions.className = "simple-item__actions";
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn btn-outline";
+    editBtn.textContent = "編集";
+    editBtn.addEventListener("click", () => startEditSimpleItem(li, item, onUpdate));
+
+    const doneBtn = document.createElement("button");
+    doneBtn.className = "btn btn-success";
+    doneBtn.textContent = "✓対応済み";
+    doneBtn.addEventListener("click", async () => {
+      try {
+        await onMarkDone(item.id);
+        await loadAll();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(doneBtn);
 
     li.appendChild(nameEl);
-    li.appendChild(deleteBtn);
+    li.appendChild(actions);
     list.appendChild(li);
   }
   container.appendChild(list);
+}
+
+/** 売切商品・忘れ物の行を、その場でのテキスト編集モードに切り替える。 */
+function startEditSimpleItem(li, item, onUpdate) {
+  const nameEl = li.querySelector(".simple-item__name");
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "simple-item__name-input";
+  input.value = nameEl.textContent;
+  nameEl.replaceWith(input);
+  input.focus();
+
+  const editBtn = li.querySelector(".simple-item__actions .btn-outline");
+  editBtn.textContent = "保存";
+  const newEditBtn = editBtn.cloneNode(true);
+  editBtn.replaceWith(newEditBtn);
+  newEditBtn.addEventListener("click", async () => {
+    const newName = input.value.trim();
+    if (!newName) return;
+    try {
+      await onUpdate(item.id, newName);
+      await loadAll();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
 }
 
 function renderSoldout(items) {
   renderItemListCard(document.getElementById("soldout-card"), items, {
     title: "売切商品",
     emptyText: "売切商品はありません",
-    onDelete: async (id) => {
-      try {
-        await api.deleteSoldoutItem(id);
-        await loadAll();
-      } catch (err) {
-        alert(err.message);
-      }
-    },
+    onUpdate: (id, name) => api.updateSoldoutItem(id, name),
+    onMarkDone: (id) => api.markSoldoutItemDone(id),
   });
 }
 
@@ -145,14 +185,8 @@ function renderLostItems(items) {
   renderItemListCard(document.getElementById("lost-card"), items, {
     title: "忘れ物",
     emptyText: "忘れ物の問い合わせはありません",
-    onDelete: async (id) => {
-      try {
-        await api.deleteLostItem(id);
-        await loadAll();
-      } catch (err) {
-        alert(err.message);
-      }
-    },
+    onUpdate: (id, name) => api.updateLostItem(id, name),
+    onMarkDone: (id) => api.markLostItemDone(id),
   });
 }
 

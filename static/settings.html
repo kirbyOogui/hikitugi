@@ -27,6 +27,14 @@
         <span>表示設定</span>
         <span class="settings-menu-item__chevron">›</span>
       </button>
+      <button type="button" class="settings-menu-item" data-target="panel-soldout-done">
+        <span>売切商品 対応済み</span>
+        <span class="settings-menu-item__chevron">›</span>
+      </button>
+      <button type="button" class="settings-menu-item" data-target="panel-lost-done">
+        <span>忘れ物 対応済み</span>
+        <span class="settings-menu-item__chevron">›</span>
+      </button>
     </section>
 
     <!-- カテゴリ管理パネル -->
@@ -62,6 +70,24 @@
           <input type="number" id="new-badge-days" min="0" max="30" required style="width: 64px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 15px;" />
           <button type="submit" class="btn btn-primary">保存</button>
         </form>
+      </section>
+    </section>
+
+    <!-- 売切商品 対応済み一覧パネル -->
+    <section id="panel-soldout-done" class="settings-panel hidden">
+      <button type="button" class="panel-back">← 設定に戻る</button>
+      <section class="card">
+        <h2 class="card__title">売切商品 対応済み</h2>
+        <div id="soldout-done-list"></div>
+      </section>
+    </section>
+
+    <!-- 忘れ物 対応済み一覧パネル -->
+    <section id="panel-lost-done" class="settings-panel hidden">
+      <button type="button" class="panel-back">← 設定に戻る</button>
+      <section class="card">
+        <h2 class="card__title">忘れ物 対応済み</h2>
+        <div id="lost-done-list"></div>
       </section>
     </section>
   </div>
