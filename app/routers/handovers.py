@@ -2,7 +2,7 @@
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.cloudinary_client import delete_photo
@@ -14,7 +14,7 @@ from app.models import (
     Handover,
     HandoverPhoto,
 )
-from app.schemas import HandoverCreate, HandoverOut, HandoverUpdate
+from app.schemas import HandoverCreate, HandoverOut, HandoverReorderRequest, HandoverUpdate
 
 router = APIRouter(prefix="/api/handovers", tags=["handovers"])
 
@@ -30,20 +30,65 @@ def _handover_query():
 def list_handovers(
     status: Literal["active", "done"] = "active", db: Session = Depends(get_db)
 ) -> list[Handover]:
-    """引継ぎ一覧を返す。statusで未対応(active)/対応済み(done)を切り替える。"""
-    stmt = _handover_query().where(Handover.status == status).order_by(Handover.created_at.desc())
+    """引継ぎ一覧を返す。
+
+    未対応(active)はユーザーが手動で並び替えたsort_order順、
+    対応済み(done)は従来通り作成日時の新しい順で返す。
+    """
+    stmt = _handover_query().where(Handover.status == status)
+    if status == HANDOVER_STATUS_ACTIVE:
+        stmt = stmt.order_by(Handover.sort_order)
+    else:
+        stmt = stmt.order_by(Handover.created_at.desc())
+    return list(db.scalars(stmt))
+
+
+@router.put("/reorder", response_model=list[HandoverOut])
+def reorder_handovers(
+    payload: HandoverReorderRequest, db: Session = Depends(get_db)
+) -> list[Handover]:
+    """ドラッグ&ドロップ後のID順を受け取り、未対応の引継ぎのsort_orderを一括更新する。"""
+    handovers = {
+        h.id: h
+        for h in db.scalars(select(Handover).where(Handover.status == HANDOVER_STATUS_ACTIVE))
+    }
+
+    missing_ids = set(payload.order) - set(handovers.keys())
+    if missing_ids:
+        raise HTTPException(
+            status_code=400, detail=f"存在しない、または対応済みの引継ぎIDです: {missing_ids}"
+        )
+
+    for index, handover_id in enumerate(payload.order):
+        handovers[handover_id].sort_order = index
+
+    db.commit()
+    stmt = _handover_query().where(Handover.status == HANDOVER_STATUS_ACTIVE).order_by(
+        Handover.sort_order
+    )
     return list(db.scalars(stmt))
 
 
 @router.post("", response_model=HandoverOut, status_code=201)
 def create_handover(payload: HandoverCreate, db: Session = Depends(get_db)) -> Handover:
-    """引継ぎを追加する。写真はクライアントがCloudinaryへ直接アップロード済みのURL/public_idを受け取る。"""
+    """引継ぎを追加する。写真はクライアントがCloudinaryへ直接アップロード済みのURL/public_idを受け取る。
+
+    表示順は常に一番上になるよう、既存の未対応引継ぎの最小sort_orderより小さい値を設定する。
+    """
     category = db.get(Category, payload.category_id)
     if category is None:
         raise HTTPException(status_code=400, detail="指定されたカテゴリが存在しません")
 
+    min_order = db.scalar(
+        select(func.min(Handover.sort_order)).where(Handover.status == HANDOVER_STATUS_ACTIVE)
+    )
+    next_sort_order = (min_order - 1) if min_order is not None else 0
+
     handover = Handover(
-        category_id=payload.category_id, body=payload.body, status=HANDOVER_STATUS_ACTIVE
+        category_id=payload.category_id,
+        body=payload.body,
+        status=HANDOVER_STATUS_ACTIVE,
+        sort_order=next_sort_order,
     )
     for photo in payload.photos:
         handover.photos.append(HandoverPhoto(url=photo.url, public_id=photo.public_id))

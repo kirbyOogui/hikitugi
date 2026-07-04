@@ -65,6 +65,12 @@ const api = {
   markHandoverDone: (id) => request(`/handovers/${id}/done`, { method: "PUT" }),
   reopenHandover: (id) => request(`/handovers/${id}/reopen`, { method: "PUT" }),
   deleteHandover: (id) => request(`/handovers/${id}`, { method: "DELETE" }),
+  reorderHandovers: (order) =>
+    request("/handovers/reorder", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order }),
+    }),
 
   // --- 写真アップロード（Cloudinaryへ直接） ---
   getUploadSignature: () => request("/uploads/signature"),

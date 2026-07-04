@@ -26,7 +26,7 @@
     <!-- 忘れ物（中身はhome.jsで描画。空の場合は1行にコンパクト表示） -->
     <section id="lost-card" class="card"></section>
 
-    <!-- カテゴリごとの引継ぎ一覧（JSで動的生成、引継ぎがあるカテゴリのみ表示） -->
+    <!-- 引継ぎ一覧（JSで動的生成。カテゴリはカードのタグ表示のみで、全件を1本のリストとしてドラッグ&ドロップ並び替え可能） -->
     <div id="categories-container"></div>
   </div>
 
@@ -115,6 +115,8 @@
     <img id="lightbox-img" src="" alt="拡大写真" />
   </div>
 
+  <!-- SortableJS: 引継ぎカードのドラッグ&ドロップ並び替えに使用 -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="/static/js/api.js"></script>
   <script src="/static/js/utils.js"></script>
   <script src="/static/js/home.js"></script>

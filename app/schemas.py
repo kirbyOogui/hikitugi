@@ -76,6 +76,12 @@ class HandoverUpdate(BaseModel):
     delete_photo_ids: list[int] = []
 
 
+class HandoverReorderRequest(BaseModel):
+    """ドラッグ&ドロップ後のID順を受け取るリクエストボディ（未対応の引継ぎのみ対象）。"""
+
+    order: list[int]
+
+
 class HandoverOut(BaseModel):
     """引継ぎ一覧・作成後のレスポンス。"""
 

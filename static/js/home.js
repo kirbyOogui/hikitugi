@@ -5,6 +5,7 @@
  */
 
 let categoriesCache = [];
+let handoverSortableInstance = null;
 
 // 引継ぎ編集シートの状態。nullなら新規追加、値があればそのIDを編集中。
 let editingHandoverId = null;
@@ -50,7 +51,7 @@ async function loadAll() {
   renderGarbage(garbage.status);
   renderSoldout(soldoutItems);
   renderLostItems(lostItems);
-  renderCategories(categories, handovers);
+  renderHandoverList(handovers);
 }
 
 // --- ゴミ庫 ---
@@ -151,21 +152,13 @@ function renderLostItems(items) {
   });
 }
 
-// --- カテゴリ・引継ぎ一覧 ---
+// --- 引継ぎ一覧（カテゴリをまたいで自由に並び替え可能な1本のリスト） ---
 
-function renderCategories(categories, handovers) {
+function renderHandoverList(handovers) {
   const container = document.getElementById("categories-container");
   container.innerHTML = "";
 
-  // 引継ぎが1件も無いカテゴリは表示自体を省略し、一覧をコンパクトに保つ
-  const categoriesWithItems = categories
-    .map((category) => ({
-      category,
-      items: handovers.filter((h) => h.category_id === category.id),
-    }))
-    .filter(({ items }) => items.length > 0);
-
-  if (categoriesWithItems.length === 0) {
+  if (handovers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "handover-empty";
     empty.textContent = "引継ぎはありません";
@@ -173,29 +166,52 @@ function renderCategories(categories, handovers) {
     return;
   }
 
-  for (const { category, items } of categoriesWithItems) {
-    const section = document.createElement("section");
-    section.className = "category-section";
-
-    const header = document.createElement("h2");
-    header.className = "category-section__header";
-    header.textContent = category.name;
-    section.appendChild(header);
-
-    const list = document.createElement("div");
-    list.className = "handover-list";
-    for (const handover of items) {
-      list.appendChild(renderHandoverCard(handover));
-    }
-
-    section.appendChild(list);
-    container.appendChild(section);
+  const list = document.createElement("div");
+  list.className = "handover-list";
+  for (const handover of handovers) {
+    list.appendChild(renderHandoverCard(handover));
   }
+  container.appendChild(list);
+
+  // 既存のSortableインスタンスがあれば破棄してから作り直す（再描画のたびに二重登録を防ぐ）
+  if (handoverSortableInstance) {
+    handoverSortableInstance.destroy();
+  }
+  handoverSortableInstance = new Sortable(list, {
+    handle: ".handover-card__handle",
+    animation: 150,
+    onEnd: async () => {
+      const order = Array.from(list.children).map((el) => Number(el.dataset.id));
+      try {
+        await api.reorderHandovers(order);
+      } catch (err) {
+        alert(err.message);
+        await loadAll();
+      }
+    },
+  });
+}
+
+function categoryName(categoryId) {
+  const category = categoriesCache.find((c) => c.id === categoryId);
+  return category ? category.name : "";
 }
 
 function renderHandoverCard(handover) {
   const card = document.createElement("div");
   card.className = "handover-card";
+  card.dataset.id = handover.id;
+
+  const meta = document.createElement("div");
+  meta.className = "handover-card__meta";
+  meta.innerHTML = `
+    <span class="handover-card__handle">≡</span>
+    <span class="handover-card__category-tag"></span>
+  `;
+  meta.querySelector(".handover-card__category-tag").textContent = categoryName(
+    handover.category_id
+  );
+  card.appendChild(meta);
 
   const body = document.createElement("p");
   body.className = "handover-card__body";

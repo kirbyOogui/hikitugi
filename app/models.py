@@ -57,6 +57,9 @@ class Handover(Base):
     status: Mapped[str] = mapped_column(
         String(10), nullable=False, default=HANDOVER_STATUS_ACTIVE
     )
+    # ホーム画面での手動並び替え順（値が小さいほど上に表示される）。
+    # カテゴリをまたいで自由に並び替えられるため、カテゴリ単位ではなく全体で管理する。
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

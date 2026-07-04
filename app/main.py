@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import select
+from sqlalchemy import inspect, select, text
 
 from app.database import Base, SessionLocal, engine
 from app.models import Category
@@ -33,10 +33,33 @@ def _seed_initial_categories() -> None:
         db.close()
 
 
+def _ensure_handover_sort_order_column() -> None:
+    """handoversテーブルにsort_order列が無ければ追加する（Alembic未導入のための簡易マイグレーション）。
+
+    既にsort_order列を持つ状態でテーブルごと新規作成された場合はここでは何もしない。
+    既存テーブルに列を追加した場合のみ、それまでの表示順（作成日時の新しい順）を
+    保つようbackfillする。
+    """
+    inspector = inspect(engine)
+    columns = {col["name"] for col in inspector.get_columns("handovers")}
+    if "sort_order" in columns:
+        return
+
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE handovers ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"))
+        rows = conn.execute(text("SELECT id FROM handovers ORDER BY created_at DESC")).fetchall()
+        for index, (handover_id,) in enumerate(rows):
+            conn.execute(
+                text("UPDATE handovers SET sort_order = :sort_order WHERE id = :id"),
+                {"sort_order": index, "id": handover_id},
+            )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """起動時にテーブル作成・初期カテゴリseedを行うlifespanハンドラ。"""
     Base.metadata.create_all(bind=engine)
+    _ensure_handover_sort_order_column()
     _seed_initial_categories()
     yield
 
