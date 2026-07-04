@@ -680,4 +680,22 @@ button {
   .container {
     padding: 24px;
   }
+
+  /* タブレット以上の画面では、スマホサイズのままだとボタンが小さく感じるため拡大する */
+  .fab {
+    width: 68px;
+    height: 68px;
+    font-size: 34px;
+  }
+
+  .fab-menu button {
+    padding: 12px 20px;
+    font-size: 16px;
+  }
+
+  .settings-fab {
+    width: 60px;
+    height: 60px;
+    font-size: 26px;
+  }
 }
