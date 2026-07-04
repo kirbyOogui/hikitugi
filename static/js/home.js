@@ -6,6 +6,7 @@
 
 let categoriesCache = [];
 let handoverSortableInstance = null;
+let displaySettingsCache = { new_badge_days: 2 };
 
 // 引継ぎ編集シートの状態。nullなら新規追加、値があればそのIDを編集中。
 let editingHandoverId = null;
@@ -39,15 +40,18 @@ function formatUpdatedAt(isoString) {
 async function loadAll() {
   document.getElementById("today-date").textContent = formatToday();
 
-  const [categories, handovers, soldoutItems, lostItems, garbage] = await Promise.all([
-    api.getCategories(),
-    api.getHandovers("active"),
-    api.getSoldoutItems(),
-    api.getLostItems(),
-    api.getGarbageStatus(),
-  ]);
+  const [categories, handovers, soldoutItems, lostItems, garbage, displaySettings] =
+    await Promise.all([
+      api.getCategories(),
+      api.getHandovers("active"),
+      api.getSoldoutItems(),
+      api.getLostItems(),
+      api.getGarbageStatus(),
+      api.getDisplaySettings(),
+    ]);
 
   categoriesCache = categories;
+  displaySettingsCache = displaySettings;
   renderGarbage(garbage.status);
   renderSoldout(soldoutItems);
   renderLostItems(lostItems);
@@ -168,6 +172,14 @@ function renderHandoverList(handovers) {
 
   const list = document.createElement("div");
   list.className = "handover-list";
+
+  if (handovers.some((h) => h.is_pinned)) {
+    const label = document.createElement("div");
+    label.className = "handover-list__pinned-label";
+    label.textContent = "📌 ピン留め";
+    list.appendChild(label);
+  }
+
   for (const handover of handovers) {
     list.appendChild(renderHandoverCard(handover));
   }
@@ -179,9 +191,12 @@ function renderHandoverList(handovers) {
   }
   handoverSortableInstance = new Sortable(list, {
     handle: ".handover-card__handle",
+    draggable: ".handover-card",
     animation: 150,
     onEnd: async () => {
-      const order = Array.from(list.children).map((el) => Number(el.dataset.id));
+      const order = Array.from(list.querySelectorAll(".handover-card")).map((el) =>
+        Number(el.dataset.id)
+      );
       try {
         await api.reorderHandovers(order);
       } catch (err) {
@@ -197,9 +212,17 @@ function categoryName(categoryId) {
   return category ? category.name : "";
 }
 
+/** 作成から表示設定の日数以内なら「NEW」バッジを表示する対象と判定する。 */
+function isNewHandover(handover) {
+  const days = displaySettingsCache.new_badge_days;
+  if (!days || days <= 0) return false;
+  const createdMs = new Date(handover.created_at).getTime();
+  return Date.now() - createdMs < days * 24 * 60 * 60 * 1000;
+}
+
 function renderHandoverCard(handover) {
   const card = document.createElement("div");
-  card.className = "handover-card";
+  card.className = "handover-card" + (handover.is_pinned ? " handover-card--pinned" : "");
   card.dataset.id = handover.id;
 
   const meta = document.createElement("div");
@@ -207,10 +230,31 @@ function renderHandoverCard(handover) {
   meta.innerHTML = `
     <span class="handover-card__handle">≡</span>
     <span class="handover-card__category-tag"></span>
+    <span class="handover-card__new-badge hidden">NEW</span>
+    <button class="icon-btn handover-card__pin-toggle" aria-label="ピン留め"></button>
   `;
   meta.querySelector(".handover-card__category-tag").textContent = categoryName(
     handover.category_id
   );
+  if (isNewHandover(handover)) {
+    meta.querySelector(".handover-card__new-badge").classList.remove("hidden");
+  }
+  const pinBtn = meta.querySelector(".handover-card__pin-toggle");
+  pinBtn.textContent = handover.is_pinned ? "📌" : "📌";
+  pinBtn.classList.toggle("is-active", handover.is_pinned);
+  pinBtn.setAttribute("aria-label", handover.is_pinned ? "ピン留めを解除" : "ピン留めする");
+  pinBtn.addEventListener("click", async () => {
+    try {
+      if (handover.is_pinned) {
+        await api.unpinHandover(handover.id);
+      } else {
+        await api.pinHandover(handover.id);
+      }
+      await loadAll();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
   card.appendChild(meta);
 
   const body = document.createElement("p");

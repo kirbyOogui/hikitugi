@@ -13,7 +13,7 @@ from sqlalchemy import inspect, select, text
 
 from app.database import Base, SessionLocal, engine
 from app.models import Category
-from app.routers import categories, garbage, handovers, lost_items, soldout, uploads
+from app.routers import categories, display_settings, garbage, handovers, lost_items, soldout, uploads
 
 # 初期カテゴリ（表示順もこの並びで登録する）
 INITIAL_CATEGORIES = ["ブース席", "カラオケ", "2R", "その他"]
@@ -55,11 +55,25 @@ def _ensure_handover_sort_order_column() -> None:
             )
 
 
+def _ensure_handover_is_pinned_column() -> None:
+    """handoversテーブルにis_pinned列が無ければ追加する（Alembic未導入のための簡易マイグレーション）。"""
+    inspector = inspect(engine)
+    columns = {col["name"] for col in inspector.get_columns("handovers")}
+    if "is_pinned" in columns:
+        return
+
+    with engine.begin() as conn:
+        conn.execute(
+            text("ALTER TABLE handovers ADD COLUMN is_pinned BOOLEAN NOT NULL DEFAULT FALSE")
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """起動時にテーブル作成・初期カテゴリseedを行うlifespanハンドラ。"""
     Base.metadata.create_all(bind=engine)
     _ensure_handover_sort_order_column()
+    _ensure_handover_is_pinned_column()
     _seed_initial_categories()
     yield
 
@@ -73,6 +87,7 @@ app.include_router(soldout.router)
 app.include_router(lost_items.router)
 app.include_router(garbage.router)
 app.include_router(uploads.router)
+app.include_router(display_settings.router)
 
 # 静的ファイル（CSS/JS）配信。index.html/settings.html自体は下の個別routeで返す。
 app.mount("/static", StaticFiles(directory="static"), name="static")

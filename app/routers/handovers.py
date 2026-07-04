@@ -32,12 +32,12 @@ def list_handovers(
 ) -> list[Handover]:
     """引継ぎ一覧を返す。
 
-    未対応(active)はユーザーが手動で並び替えたsort_order順、
-    対応済み(done)は従来通り作成日時の新しい順で返す。
+    未対応(active)はピン留め済みを先頭グループにし、その中でユーザーが手動で
+    並び替えたsort_order順に並べる。対応済み(done)は従来通り作成日時の新しい順。
     """
     stmt = _handover_query().where(Handover.status == status)
     if status == HANDOVER_STATUS_ACTIVE:
-        stmt = stmt.order_by(Handover.sort_order)
+        stmt = stmt.order_by(Handover.is_pinned.desc(), Handover.sort_order)
     else:
         stmt = stmt.order_by(Handover.created_at.desc())
     return list(db.scalars(stmt))
@@ -64,7 +64,7 @@ def reorder_handovers(
 
     db.commit()
     stmt = _handover_query().where(Handover.status == HANDOVER_STATUS_ACTIVE).order_by(
-        Handover.sort_order
+        Handover.is_pinned.desc(), Handover.sort_order
     )
     return list(db.scalars(stmt))
 
@@ -140,6 +140,32 @@ def mark_done(handover_id: int, db: Session = Depends(get_db)) -> Handover:
         raise HTTPException(status_code=404, detail="引継ぎが見つかりません")
 
     handover.status = HANDOVER_STATUS_DONE
+    db.commit()
+    db.refresh(handover)
+    return handover
+
+
+@router.put("/{handover_id}/pin", response_model=HandoverOut)
+def pin_handover(handover_id: int, db: Session = Depends(get_db)) -> Handover:
+    """引継ぎをピン留めする（常に一覧の一番上のグループに表示されるようになる）。"""
+    handover = db.get(Handover, handover_id)
+    if handover is None:
+        raise HTTPException(status_code=404, detail="引継ぎが見つかりません")
+
+    handover.is_pinned = True
+    db.commit()
+    db.refresh(handover)
+    return handover
+
+
+@router.put("/{handover_id}/unpin", response_model=HandoverOut)
+def unpin_handover(handover_id: int, db: Session = Depends(get_db)) -> Handover:
+    """引継ぎのピン留めを解除する。"""
+    handover = db.get(Handover, handover_id)
+    if handover is None:
+        raise HTTPException(status_code=404, detail="引継ぎが見つかりません")
+
+    handover.is_pinned = False
     db.commit()
     db.refresh(handover)
     return handover

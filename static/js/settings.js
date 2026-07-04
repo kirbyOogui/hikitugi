@@ -176,6 +176,24 @@ function renderDoneList(items) {
   }
 }
 
+// --- 表示設定 ---
+
+async function loadDisplaySettings() {
+  const settings = await api.getDisplaySettings();
+  document.getElementById("new-badge-days").value = settings.new_badge_days;
+}
+
+document.getElementById("display-settings-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const days = Number(document.getElementById("new-badge-days").value);
+  try {
+    await api.updateDisplaySettings(days);
+    alert("保存しました");
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
 // --- 設定トップ(項目一覧) ⇔ 詳細パネルの切り替え ---
 // 今後設定項目が増えても、トップは常に項目一覧のみを表示する構成にする。
 
@@ -199,4 +217,6 @@ document.querySelectorAll(".panel-back").forEach((btn) => {
 
 // --- 初期化 ---
 
-Promise.all([loadCategories(), loadDoneList()]).catch((err) => alert(err.message));
+Promise.all([loadCategories(), loadDoneList(), loadDisplaySettings()]).catch((err) =>
+  alert(err.message)
+);

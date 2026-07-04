@@ -65,11 +65,22 @@ const api = {
   markHandoverDone: (id) => request(`/handovers/${id}/done`, { method: "PUT" }),
   reopenHandover: (id) => request(`/handovers/${id}/reopen`, { method: "PUT" }),
   deleteHandover: (id) => request(`/handovers/${id}`, { method: "DELETE" }),
+  pinHandover: (id) => request(`/handovers/${id}/pin`, { method: "PUT" }),
+  unpinHandover: (id) => request(`/handovers/${id}/unpin`, { method: "PUT" }),
   reorderHandovers: (order) =>
     request("/handovers/reorder", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order }),
+    }),
+
+  // --- 表示設定 ---
+  getDisplaySettings: () => request("/display-settings"),
+  updateDisplaySettings: (newBadgeDays) =>
+    request("/display-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ new_badge_days: newBadgeDays }),
     }),
 
   // --- 写真アップロード（Cloudinaryへ直接） ---

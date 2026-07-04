@@ -92,6 +92,7 @@ class HandoverOut(BaseModel):
     category_name: str
     body: str
     status: Literal["active", "done"]
+    is_pinned: bool
     created_at: datetime.datetime
     updated_at: datetime.datetime
     photos: list[HandoverPhotoOut]
@@ -133,6 +134,23 @@ class LostItemOut(BaseModel):
     id: int
     name: str
     created_at: datetime.datetime
+
+
+# --- 表示設定 ---------------------------------------------------------
+
+
+class DisplaySettingsUpdate(BaseModel):
+    """表示設定更新のリクエストボディ。"""
+
+    new_badge_days: int = Field(ge=0, le=30)
+
+
+class DisplaySettingsOut(BaseModel):
+    """表示設定のレスポンス。"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    new_badge_days: int
 
 
 # --- ゴミ庫 ---------------------------------------------------------

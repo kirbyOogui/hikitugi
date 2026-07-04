@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -60,6 +60,8 @@ class Handover(Base):
     # ホーム画面での手動並び替え順（値が小さいほど上に表示される）。
     # カテゴリをまたいで自由に並び替えられるため、カテゴリ単位ではなく全体で管理する。
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # ピン止め。Trueのカードは他の並び順に関係なく常に一番上のグループに表示される。
+    is_pinned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -120,6 +122,21 @@ class LostItem(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class DisplaySettings(Base):
+    """表示設定。常にid=1の1行のみを使うシングルトンテーブル。
+
+    new_badge_days: 引継ぎ作成から何日以内なら「NEW」マークを表示するか。
+    """
+
+    __tablename__ = "display_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    new_badge_days: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
 
