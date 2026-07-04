@@ -122,6 +122,27 @@ document.getElementById("category-add-form").addEventListener("submit", async (e
 
 // --- 対応済み一覧 ---
 
+/**
+ * 対応済み一覧の先頭に「全て完全削除」ボタンを追加する
+ * （引継ぎ・売切商品・忘れ物の3つの対応済み一覧で共通利用）。
+ */
+function appendBulkDeleteButton(listEl, items, { onDelete, reload, itemLabel }) {
+  const btn = document.createElement("button");
+  btn.className = "btn btn-danger";
+  btn.style.marginBottom = "12px";
+  btn.textContent = "全て完全削除";
+  btn.addEventListener("click", async () => {
+    if (!confirm(`${itemLabel}を${items.length}件すべて完全に削除します。よろしいですか？`)) return;
+    try {
+      await Promise.all(items.map((item) => onDelete(item.id)));
+      await reload();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+  listEl.appendChild(btn);
+}
+
 async function loadDoneList() {
   const items = await api.getHandovers("done");
   renderDoneList(items);
@@ -138,6 +159,12 @@ function renderDoneList(items) {
     listEl.appendChild(empty);
     return;
   }
+
+  appendBulkDeleteButton(listEl, items, {
+    onDelete: (id) => api.deleteHandover(id),
+    reload: loadDoneList,
+    itemLabel: "対応済みの引継ぎ",
+  });
 
   for (const item of items) {
     const row = document.createElement("div");
@@ -178,7 +205,7 @@ function renderDoneList(items) {
 
 // --- 売切商品 / 忘れ物 対応済み一覧（名前のみなので共通関数で描画する） ---
 
-function renderSimpleDoneList(listEl, items, emptyText, { onReopen, onDelete, reload }) {
+function renderSimpleDoneList(listEl, items, emptyText, { onReopen, onDelete, reload, itemLabel }) {
   listEl.innerHTML = "";
 
   if (items.length === 0) {
@@ -188,6 +215,8 @@ function renderSimpleDoneList(listEl, items, emptyText, { onReopen, onDelete, re
     listEl.appendChild(empty);
     return;
   }
+
+  appendBulkDeleteButton(listEl, items, { onDelete, reload, itemLabel });
 
   for (const item of items) {
     const row = document.createElement("div");
@@ -233,6 +262,7 @@ async function loadSoldoutDoneList() {
       onReopen: (id) => api.reopenSoldoutItem(id),
       onDelete: (id) => api.deleteSoldoutItem(id),
       reload: loadSoldoutDoneList,
+      itemLabel: "対応済みの売切商品",
     }
   );
 }
@@ -247,6 +277,7 @@ async function loadLostDoneList() {
       onReopen: (id) => api.reopenLostItem(id),
       onDelete: (id) => api.deleteLostItem(id),
       reload: loadLostDoneList,
+      itemLabel: "対応済みの忘れ物",
     }
   );
 }
