@@ -317,9 +317,8 @@ function showSettingsPanel(panelId) {
 document.querySelectorAll(".settings-menu-item").forEach((btn) => {
   btn.addEventListener("click", () => showSettingsPanel(btn.dataset.target));
 });
-document.querySelectorAll(".panel-back").forEach((btn) => {
-  btn.addEventListener("click", showSettingsMenu);
-});
+// パネル表示中は、上部の「設定」タイトルをタッチすると一覧に戻れるようにする
+document.getElementById("settings-title").addEventListener("click", showSettingsMenu);
 
 // --- 初期化 ---
 

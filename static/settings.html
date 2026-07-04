@@ -10,21 +10,13 @@
   <div class="container">
     <div class="settings-header">
       <a href="/">← ホームへ</a>
-      <h1>設定</h1>
+      <h1 id="settings-title">設定</h1>
     </div>
 
     <!-- 設定トップ: 項目一覧のみ表示。今後の設定項目もここに追加していく -->
     <section id="settings-menu" class="card settings-menu">
       <button type="button" class="settings-menu-item" data-target="panel-category">
         <span>カテゴリ管理</span>
-        <span class="settings-menu-item__chevron">›</span>
-      </button>
-      <button type="button" class="settings-menu-item" data-target="panel-done">
-        <span>対応済み一覧</span>
-        <span class="settings-menu-item__chevron">›</span>
-      </button>
-      <button type="button" class="settings-menu-item" data-target="panel-display">
-        <span>表示設定</span>
         <span class="settings-menu-item__chevron">›</span>
       </button>
       <button type="button" class="settings-menu-item" data-target="panel-soldout-done">
@@ -35,11 +27,18 @@
         <span>忘れ物 対応済み</span>
         <span class="settings-menu-item__chevron">›</span>
       </button>
+      <button type="button" class="settings-menu-item" data-target="panel-done">
+        <span>対応済み一覧</span>
+        <span class="settings-menu-item__chevron">›</span>
+      </button>
+      <button type="button" class="settings-menu-item" data-target="panel-display">
+        <span>表示設定</span>
+        <span class="settings-menu-item__chevron">›</span>
+      </button>
     </section>
 
     <!-- カテゴリ管理パネル -->
     <section id="panel-category" class="settings-panel hidden">
-      <button type="button" class="panel-back">← 設定に戻る</button>
       <section class="card">
         <h2 class="card__title">カテゴリ管理</h2>
         <div id="category-list"></div>
@@ -53,7 +52,6 @@
 
     <!-- 対応済み一覧パネル -->
     <section id="panel-done" class="settings-panel hidden">
-      <button type="button" class="panel-back">← 設定に戻る</button>
       <section class="card">
         <h2 class="card__title">対応済み一覧</h2>
         <div id="done-list"></div>
@@ -62,7 +60,6 @@
 
     <!-- 表示設定パネル -->
     <section id="panel-display" class="settings-panel hidden">
-      <button type="button" class="panel-back">← 設定に戻る</button>
       <section class="card">
         <h2 class="card__title">表示設定</h2>
         <form id="display-settings-form" class="form-group" style="display: flex; align-items: center; gap: 8px;">
@@ -75,7 +72,6 @@
 
     <!-- 売切商品 対応済み一覧パネル -->
     <section id="panel-soldout-done" class="settings-panel hidden">
-      <button type="button" class="panel-back">← 設定に戻る</button>
       <section class="card">
         <h2 class="card__title">売切商品 対応済み</h2>
         <div id="soldout-done-list"></div>
@@ -84,7 +80,6 @@
 
     <!-- 忘れ物 対応済み一覧パネル -->
     <section id="panel-lost-done" class="settings-panel hidden">
-      <button type="button" class="panel-back">← 設定に戻る</button>
       <section class="card">
         <h2 class="card__title">忘れ物 対応済み</h2>
         <div id="lost-done-list"></div>

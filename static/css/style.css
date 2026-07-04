@@ -216,7 +216,11 @@ button {
 .handover-card__handle {
   cursor: grab;
   color: var(--color-text-muted);
-  font-size: 18px;
+  font-size: 22px;
+  line-height: 1;
+  /* タッチでもつまみやすいよう、見た目のサイズは変えずに当たり判定だけ広げる */
+  padding: 10px;
+  margin: -10px;
   touch-action: none;
 }
 
@@ -572,6 +576,7 @@ button {
 .settings-header h1 {
   font-size: 18px;
   margin: 0;
+  cursor: pointer;
 }
 
 /* 設定トップの項目一覧（今後の設定項目もここに並べていく） */
@@ -603,17 +608,6 @@ button {
   font-size: 18px;
 }
 
-/* 各設定項目の詳細パネル（戻るボタンで一覧に戻る） */
-.panel-back {
-  border: none;
-  background: none;
-  color: var(--color-primary);
-  font-size: 14px;
-  font-weight: 600;
-  padding: 0;
-  margin-bottom: 12px;
-}
-
 .category-row {
   display: flex;
   align-items: center;
@@ -629,7 +623,11 @@ button {
 .category-row__handle {
   cursor: grab;
   color: var(--color-text-muted);
-  font-size: 18px;
+  font-size: 22px;
+  line-height: 1;
+  /* タッチでもつまみやすいよう、見た目のサイズは変えずに当たり判定だけ広げる */
+  padding: 10px;
+  margin: -10px;
   touch-action: none;
 }
 
