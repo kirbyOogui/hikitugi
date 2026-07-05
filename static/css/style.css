@@ -12,8 +12,9 @@
   --color-primary-dark: #1d4ed8;
   --color-danger: #dc2626;
   --color-success: #16a34a;
-  --color-complete: #16a34a;
+  --color-complete: #0891b2;
   --color-warning: #d97706;
+  --color-date-highlight: #60a5fa;
   --radius: 14px;
   --radius-sm: 8px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -35,7 +36,8 @@
   --color-text-muted: #5b6b82;
   --color-primary: #1e3a8a;
   --color-primary-dark: #16305e;
-  --color-complete: #0d9488;
+  --color-complete: #4338ca;
+  --color-date-highlight: #818cf8;
 }
 
 /* パターン3: グリーン */
@@ -47,7 +49,8 @@
   --color-text-muted: #5f7568;
   --color-primary: #15803d;
   --color-primary-dark: #0f5c2c;
-  --color-complete: #047857;
+  --color-complete: #4d7c0f;
+  --color-date-highlight: #22c55e;
 }
 
 /* パターン4: 快活クラブ風（オレンジ×ネイビーの暖色系） */
@@ -59,7 +62,8 @@
   --color-text-muted: #8a7660;
   --color-primary: #e8630c;
   --color-primary-dark: #c14f08;
-  --color-complete: #15803d;
+  --color-complete: #c2410c;
+  --color-date-highlight: #fb923c;
 }
 
 /* パターン5: パープル */
@@ -71,7 +75,8 @@
   --color-text-muted: #6f6485;
   --color-primary: #7c3aed;
   --color-primary-dark: #6428c7;
-  --color-complete: #059669;
+  --color-complete: #a21caf;
+  --color-date-highlight: #c084fc;
 }
 
 /* パターン6: モノクロ（グレースケール+差し色なしの落ち着いた配色） */
@@ -83,7 +88,8 @@
   --color-text-muted: #71717a;
   --color-primary: #27272a;
   --color-primary-dark: #000000;
-  --color-complete: #0f766e;
+  --color-complete: #52525b;
+  --color-date-highlight: #a1a1aa;
 }
 
 /* パターン7: ダーク（背景が暗く、文字が明るい配色。--color-surfaceも
@@ -99,7 +105,8 @@
   --color-primary: #4f8cff;
   --color-primary-dark: #3b74e0;
   --color-danger: #e5484d;
-  --color-complete: #22c55e;
+  --color-complete: #0284c7;
+  --color-date-highlight: #2f5bd0;
 }
 
 * {
@@ -362,12 +369,27 @@ textarea {
   margin-bottom: 10px;
 }
 
-/* 本文中に書かれた日付表記（7/5, 7月5日など）を目立たせる下線 */
+/* 本文中に書かれた日付表記（7/5, 7月5日など、全角/半角どちらも対象）を
+   目立たせるハイライト。文字の背後のレイヤーに配色し、文字と重なる上側を
+   太く・下にはみ出す部分は細いラインになるようにする（マーカーで線を
+   引いたような見た目）。色はカラーテーマごとに切り替わる。 */
 .date-highlight {
-  text-decoration: underline;
-  text-decoration-color: var(--color-primary);
-  text-decoration-thickness: 2px;
+  position: relative;
+  z-index: 0;
+  display: inline-block;
   font-weight: 600;
+}
+
+.date-highlight::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: -2px;
+  right: -2px;
+  top: 40%;
+  bottom: -3px;
+  background: var(--color-date-highlight);
+  border-radius: 2px;
 }
 
 .handover-card__photos {
