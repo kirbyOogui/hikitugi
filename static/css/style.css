@@ -47,7 +47,7 @@
   --color-text-muted: #5f7568;
   --color-primary: #15803d;
   --color-primary-dark: #0f5c2c;
-  --color-complete: #0f766e;
+  --color-complete: #047857;
 }
 
 /* パターン4: 快活クラブ風（オレンジ×ネイビーの暖色系） */
@@ -71,7 +71,7 @@
   --color-text-muted: #6f6485;
   --color-primary: #7c3aed;
   --color-primary-dark: #6428c7;
-  --color-complete: #15803d;
+  --color-complete: #059669;
 }
 
 /* パターン6: モノクロ（グレースケール+差し色なしの落ち着いた配色） */
@@ -83,7 +83,7 @@
   --color-text-muted: #71717a;
   --color-primary: #27272a;
   --color-primary-dark: #000000;
-  --color-complete: #16a34a;
+  --color-complete: #0f766e;
 }
 
 /* パターン7: ダーク（背景が暗く、文字が明るい配色。--color-surfaceも
