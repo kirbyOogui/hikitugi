@@ -52,6 +52,7 @@ async function loadAll() {
 
   categoriesCache = categories;
   displaySettingsCache = displaySettings;
+  applyColorTheme(displaySettings.color_theme);
   renderGarbage(garbage.status);
   renderSoldout(soldoutItems);
   renderLostItems(lostItems);

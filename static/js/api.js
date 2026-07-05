@@ -76,11 +76,16 @@ const api = {
 
   // --- 表示設定 ---
   getDisplaySettings: () => request("/display-settings"),
-  updateDisplaySettings: (newBadgeDays) =>
+  /**
+   * 表示設定を更新する。NEW表示日数・カラーテーマはそれぞれ別画面から
+   * 個別に更新するため、渡された項目のみサーバー側で更新される。
+   * 例: updateDisplaySettings({ new_badge_days: 3 }) / updateDisplaySettings({ color_theme: "navy" })
+   */
+  updateDisplaySettings: (partialSettings) =>
     request("/display-settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ new_badge_days: newBadgeDays }),
+      body: JSON.stringify(partialSettings),
     }),
 
   // --- 写真アップロード（Cloudinaryへ直接） ---

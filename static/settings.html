@@ -3,6 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <!-- カラーテーマ切り替え時に、次回アクセス時デフォルト配色が一瞬表示されるのを防ぐため
+       サーバーからの設定取得より前に、保存済みのテーマを同期的に反映する -->
+  <script>
+    (function () {
+      var theme = localStorage.getItem("colorTheme");
+      if (theme) document.documentElement.dataset.theme = theme;
+    })();
+  </script>
   <title>設定 | 引継書</title>
   <link rel="icon" type="image/png" href="/static/icons/favicon-32.png" />
   <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png" />
@@ -11,8 +19,8 @@
 <body>
   <div class="container">
     <div class="settings-header">
-      <a href="/" id="settings-home-link" class="settings-back-link">← ホームへ</a>
-      <button type="button" id="settings-back-btn" class="settings-back-link hidden">‹ 設定</button>
+      <a href="/" id="settings-home-link" class="settings-back-link"><span class="settings-back-link__chevron">‹</span> ホームへ</a>
+      <button type="button" id="settings-back-btn" class="settings-back-link hidden"><span class="settings-back-link__chevron">‹</span> 設定</button>
       <h1 id="settings-title">設定</h1>
     </div>
 
@@ -43,7 +51,6 @@
     <!-- カテゴリ管理パネル -->
     <section id="panel-category" class="settings-panel hidden">
       <section class="card">
-        <h2 class="card__title">カテゴリ管理</h2>
         <div id="category-list"></div>
 
         <form id="category-add-form" class="form-group" style="margin-top: 12px; display: flex; gap: 8px;">
@@ -56,15 +63,27 @@
     <!-- 対応済み一覧パネル -->
     <section id="panel-done" class="settings-panel hidden">
       <section class="card">
-        <h2 class="card__title">対応済み一覧</h2>
         <div id="done-list"></div>
       </section>
     </section>
 
-    <!-- 表示設定パネル -->
+    <!-- 表示設定パネル: NEW表示日数・カラーテーマの2項目を持つサブメニュー -->
     <section id="panel-display" class="settings-panel hidden">
+      <section class="card settings-menu">
+        <button type="button" class="settings-menu-item" data-target="panel-display-badge">
+          <span>NEW表示日数</span>
+          <span class="settings-menu-item__chevron">›</span>
+        </button>
+        <button type="button" class="settings-menu-item" data-target="panel-display-theme">
+          <span>カラーテーマ</span>
+          <span class="settings-menu-item__chevron">›</span>
+        </button>
+      </section>
+    </section>
+
+    <!-- NEW表示日数パネル -->
+    <section id="panel-display-badge" class="settings-panel hidden">
       <section class="card">
-        <h2 class="card__title">表示設定</h2>
         <form id="display-settings-form" class="form-group" style="display: flex; align-items: center; gap: 8px;">
           <label for="new-badge-days">「NEW」を表示する日数</label>
           <input type="number" id="new-badge-days" min="0" max="30" required style="width: 64px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 15px;" />
@@ -73,10 +92,14 @@
       </section>
     </section>
 
+    <!-- カラーテーマパネル: パターンをタップすると1タップで即座に反映される -->
+    <section id="panel-display-theme" class="settings-panel hidden">
+      <section class="card settings-menu" id="theme-pattern-list"></section>
+    </section>
+
     <!-- 売切商品 対応済み一覧パネル -->
     <section id="panel-soldout-done" class="settings-panel hidden">
       <section class="card">
-        <h2 class="card__title">売切商品 対応済み</h2>
         <div id="soldout-done-list"></div>
       </section>
     </section>
@@ -84,7 +107,6 @@
     <!-- 忘れ物 対応済み一覧パネル -->
     <section id="panel-lost-done" class="settings-panel hidden">
       <section class="card">
-        <h2 class="card__title">忘れ物 対応済み</h2>
         <div id="lost-done-list"></div>
       </section>
     </section>
@@ -94,6 +116,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="/static/js/api.js"></script>
   <script src="/static/js/utils.js"></script>
+  <script src="/static/js/theme.js"></script>
   <script src="/static/js/settings.js"></script>
 </body>
 </html>

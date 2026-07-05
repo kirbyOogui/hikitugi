@@ -282,7 +282,7 @@ async function loadLostDoneList() {
   );
 }
 
-// --- 表示設定 ---
+// --- 表示設定: NEW表示日数 ---
 
 async function loadDisplaySettings() {
   const settings = await api.getDisplaySettings();
@@ -293,12 +293,64 @@ document.getElementById("display-settings-form").addEventListener("submit", asyn
   e.preventDefault();
   const days = Number(document.getElementById("new-badge-days").value);
   try {
-    await api.updateDisplaySettings(days);
+    await api.updateDisplaySettings({ new_badge_days: days });
     alert("保存しました");
   } catch (err) {
     alert(err.message);
   }
 });
+
+// --- 表示設定: カラーテーマ ---
+// パターンをタップした時点で即座に反映する（保存ボタンは無し）。
+
+async function loadThemeSettings() {
+  const settings = await api.getDisplaySettings();
+  applyColorTheme(settings.color_theme);
+  renderThemePatternList(settings.color_theme);
+}
+
+function renderThemePatternList(selectedKey) {
+  const listEl = document.getElementById("theme-pattern-list");
+  listEl.innerHTML = "";
+
+  for (const pattern of THEME_PATTERNS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "settings-menu-item theme-pattern-item";
+
+    const left = document.createElement("span");
+    left.className = "theme-pattern-item__left";
+
+    const swatch = document.createElement("span");
+    swatch.className = "theme-pattern-item__swatch";
+    swatch.style.background = pattern.swatch;
+
+    const label = document.createElement("span");
+    label.textContent = pattern.label;
+
+    left.append(swatch, label);
+
+    const check = document.createElement("span");
+    check.className = "theme-pattern-item__check";
+    check.textContent = "✓";
+    if (pattern.key !== selectedKey) {
+      check.classList.add("hidden");
+    }
+
+    btn.append(left, check);
+    btn.addEventListener("click", async () => {
+      applyColorTheme(pattern.key);
+      renderThemePatternList(pattern.key);
+      try {
+        await api.updateDisplaySettings({ color_theme: pattern.key });
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    listEl.appendChild(btn);
+  }
+}
 
 // --- 設定トップ(項目一覧) ⇔ 詳細パネルの切り替え ---
 // iPhoneの設定アプリのように、画面を移動するたびに戻るボタンへ
@@ -326,7 +378,11 @@ function renderSettingsHeader() {
     const previous = settingsNav[settingsNav.length - 2];
     settingsHomeLink.classList.add("hidden");
     settingsBackBtn.classList.remove("hidden");
-    settingsBackBtn.textContent = `‹ ${previous.title}`;
+    settingsBackBtn.innerHTML = "";
+    const chevron = document.createElement("span");
+    chevron.className = "settings-back-link__chevron";
+    chevron.textContent = "‹";
+    settingsBackBtn.append(chevron, ` ${previous.title}`);
   }
 }
 
@@ -359,6 +415,7 @@ Promise.all([
   loadCategories(),
   loadDoneList(),
   loadDisplaySettings(),
+  loadThemeSettings(),
   loadSoldoutDoneList(),
   loadLostDoneList(),
 ]).catch((err) => alert(err.message));

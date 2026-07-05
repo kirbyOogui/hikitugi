@@ -137,12 +137,14 @@ class DisplaySettings(Base):
     """表示設定。常にid=1の1行のみを使うシングルトンテーブル。
 
     new_badge_days: 引継ぎ作成から何日以内なら「NEW」マークを表示するか。
+    color_theme: 画面の配色パターン（"default"/"navy"/"green"/"kaikatsu"のいずれか）。
     """
 
     __tablename__ = "display_settings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     new_badge_days: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    color_theme: Mapped[str] = mapped_column(String(20), nullable=False, default="default")
     updated_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

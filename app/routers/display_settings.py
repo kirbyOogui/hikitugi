@@ -32,9 +32,12 @@ def get_display_settings(db: Session = Depends(get_db)) -> DisplaySettings:
 def update_display_settings(
     payload: DisplaySettingsUpdate, db: Session = Depends(get_db)
 ) -> DisplaySettings:
-    """表示設定を更新する。"""
+    """表示設定を更新する。指定されたフィールドのみ更新する。"""
     settings_row = _get_or_create(db)
-    settings_row.new_badge_days = payload.new_badge_days
+    if payload.new_badge_days is not None:
+        settings_row.new_badge_days = payload.new_badge_days
+    if payload.color_theme is not None:
+        settings_row.color_theme = payload.color_theme
     db.commit()
     db.refresh(settings_row)
     return settings_row

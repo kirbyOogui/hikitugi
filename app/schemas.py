@@ -152,11 +152,19 @@ class LostItemOut(BaseModel):
 
 # --- 表示設定 ---------------------------------------------------------
 
+# カラーテーマのキー。static/css/style.cssの[data-theme="..."]と対応させる。
+ColorTheme = Literal["default", "navy", "green", "kaikatsu"]
+
 
 class DisplaySettingsUpdate(BaseModel):
-    """表示設定更新のリクエストボディ。"""
+    """表示設定更新のリクエストボディ。
 
-    new_badge_days: int = Field(ge=0, le=30)
+    NEW表示日数・カラーテーマはそれぞれ別画面から個別に更新するため、
+    両方とも省略可能にし、指定されたフィールドのみ更新する。
+    """
+
+    new_badge_days: int | None = Field(default=None, ge=0, le=30)
+    color_theme: ColorTheme | None = None
 
 
 class DisplaySettingsOut(BaseModel):
@@ -165,6 +173,7 @@ class DisplaySettingsOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     new_badge_days: int
+    color_theme: str
 
 
 # --- ゴミ庫 ---------------------------------------------------------

@@ -84,6 +84,11 @@ async def lifespan(app: FastAPI):
         "status",
         "ALTER TABLE lost_items ADD COLUMN status VARCHAR(10) NOT NULL DEFAULT 'active'",
     )
+    _ensure_column(
+        "display_settings",
+        "color_theme",
+        "ALTER TABLE display_settings ADD COLUMN color_theme VARCHAR(20) NOT NULL DEFAULT 'default'",
+    )
     _seed_initial_categories()
     yield
 
