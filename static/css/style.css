@@ -101,6 +101,13 @@ button {
   background: var(--color-danger);
 }
 
+/* 実際のステータス取得前は空/満どちらとも決めつけず、ニュートラルな色で表示する
+   （取得前に「空」固定で表示すると、実際は「満」の場合に一瞬誤表示してしまうため） */
+.garbage-toggle__btn--loading {
+  background: var(--color-border);
+  min-width: 40px;
+}
+
 /* ---------- カード共通 ---------- */
 
 .card {
@@ -567,16 +574,21 @@ button {
   margin-bottom: 16px;
 }
 
-.settings-header a {
+.settings-header a,
+.settings-header .settings-back-link {
   font-size: 14px;
   text-decoration: none;
   color: var(--color-primary);
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .settings-header h1 {
   font-size: 18px;
   margin: 0;
-  cursor: pointer;
 }
 
 /* 設定トップの項目一覧（今後の設定項目もここに並べていく） */

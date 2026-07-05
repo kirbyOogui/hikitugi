@@ -197,3 +197,255 @@
   - 設定画面のカテゴリ管理一覧にも「テストカテゴリA」が反映されていることを確認
   - コンソールエラーはfavicon.ico 404のみ
 - テスト用に作成した引継ぎ・カテゴリ（テストカテゴリA）はAPI経由で削除し、ローカルDBを元の状態（初期4カテゴリのみ）に戻した。
+
+========================================
+■ 2026-07-04: 本番環境（Render）のPythonバージョン起因のデプロイ失敗を修正
+
+【依頼内容】
+Renderにデプロイしたが画面がずっと読み込み中のまま完了しない、との相談。調査の結果、実際は直近のデプロイがビルド段階で失敗し続けていたことが判明。
+
+【調査結果】
+Renderのデプロイログを確認したところ、Renderの既定Pythonが3.14になっており、pydantic-coreのビルド済みパッケージ(wheel)が存在せずソースビルドに失敗していた。
+
+【実装内容】
+- 当初 runtime.txt (python-3.13.9) で固定を試みたが反映されず、Renderでは .python-version ファイル（pyenv形式、"3.13.9"のみ）を使う方式に切り替え。
+- あわせてRenderの環境変数にも PYTHON_VERSION=3.13.9 を設定（保険）。
+
+【動作確認】
+- 上記対応後、Renderのビルドが成功し、本番アクセスできることを確認。
+
+========================================
+■ 2026-07-04: Cloudinaryの環境変数誤り（cloud_name/APIキー）を修正
+
+【依頼内容】
+本番で引継ぎ登録時にstatus:500エラーが発生する、との相談。
+
+【調査結果】
+Renderのログから cloudinary.exceptions.Error: Invalid cloud_name Root を確認。.envに設定していたCLOUDINARY_CLOUD_NAME="Root"がCloudinaryダッシュボード表示名であり、実際のcloud_name(pb5cvr2b)ではなかったことが原因。続けてAPIキー・シークレットも古い/誤った値だったため、ユーザーがCloudinaryダッシュボードで正しい値（cloud_name=pb5cvr2b, api_key=476252728943698, api_secret=1gMa-ZTBEKOG2LvLmKpi2qn8_pQ）を確認し、.env・Render双方に反映した。
+
+【動作確認】
+- 値修正後、写真アップロードを伴う引継ぎ登録がエラーなく完了することを確認。
+
+========================================
+■ 2026-07-04: 本番用データベースをRender PostgresからNeonに切り替え
+
+【依頼内容】
+Render上のDATABASE_URLが、当初想定していたRender自身のPostgresではなくNeonの接続文字列になっていることにユーザーが気付き、どちらを使うか相談。
+
+【対応内容】
+ユーザーの意向によりNeonを本番DBとして正式採用。ローカル.envのDATABASE_URLもNeonの接続文字列に更新。Render上のPostgres（未使用になったもの）は将来的に削除して良い旨を案内。
+
+========================================
+■ 2026-07-04: Render無料プランのスリープ対策としてGitHub Actionsによるkeep-alive pingを追加
+
+【依頼内容】
+本番アクセス時に読み込みが遅い（Renderの無料プランはスリープ復帰に50秒前後かかる）ことについて相談。
+
+【実装内容】
+- .github/workflows/keep-alive.yml を新規作成。10分おきにcronでアプリのURLへcurlアクセスし、Renderがスリープしないようにする。
+- 初回は "/" （トップページ）を叩く実装だったが、これだとDBには触れずNeon側がスリープしたままになるため、DBを使うエンドポイント(/api/handovers)を叩くように修正。
+
+【動作確認】
+- GitHub Actionsの実行履歴で正常に実行されていることを確認。
+- ただし後日、GitHub Actionsのscheduleは実行時刻が保証されず遅延することがある(GitHub公式の既知の制約)と判明し、根本対策として後述のCloud Run移行を実施。
+
+========================================
+■ 2026-07-04: 写真アップロードを圧縮＋クライアント→Cloudinary直接方式に変更（速度改善）
+
+【依頼内容】
+写真を添付して引継ぎ登録すると体感10秒程度かかりストレスとの相談。写真なしなら速いとのことから、Cloudinaryアップロード周りが原因と特定。
+
+【実装内容】
+1. static/js/utils.js に compressImage() を追加。アップロード前にブラウザ側で長辺1600px・JPEG品質0.8まで圧縮する（8.3MBの画像が約0.26MBまで縮小されることをPlaywrightで確認）。home.jsの送信処理で圧縮してから送るよう変更。
+2. 圧縮だけでは「スマホ→Renderサーバー→Cloudinary」の2段階アップロード構造自体は変わらないため、根本対策としてクライアント→Cloudinary直接アップロード方式に変更。
+   - app/cloudinary_client.py に generate_upload_signature() を追加（署名付きアップロード用）。
+   - app/routers/uploads.py を新規作成し、GET /api/uploads/signature で署名一式を返す。
+   - app/routers/handovers.py の作成・編集APIを、multipart/form-data(ファイル本体を受け取る方式)からJSON(url/public_idを受け取る方式)に変更。
+   - app/schemas.py に HandoverPhotoIn/HandoverCreate/HandoverUpdate を追加。
+   - static/js/api.js に uploadPhotoToCloudinary() を追加。フロントで圧縮→署名取得→Cloudinaryへ直接POST→取得したurl/public_idをJSONで送信、という流れに変更。
+
+【動作確認】
+- ローカルでダミーCloudinary設定のサーバーを起動し、写真なし投稿の作成、写真ありの場合のアップロード失敗時のエラーハンドリング（入力内容が失われずアラート表示されること）をPlaywrightで確認。
+- 本番の実写真アップロードでの速度改善はユーザー側で確認済み。
+
+【残課題・引き継ぎ事項】
+- 引継ぎ編集時の写真追加・削除ロジックも同じJSON方式に統一済み（delete_photo_idsは従来通り）。
+
+========================================
+■ 2026-07-04: 引継ぎカードのピン止め機能・「NEW」バッジ表示機能を追加
+
+【依頼内容】
+引継ぎカードをピン止めできるようにしたい。また追加日が新しいものに「NEW」の目印を付けたい。
+
+【仕様確認】
+- ピン止めは常に一覧の一番上に固定（複数ピン止めした場合はその中でもドラッグで順番変更可能）。
+- NEWの判定基準は「作成から指定日数以内」とし、日数は設定画面から変更可能（デフォルト2日）。
+
+【実装内容】
+- app/models.py: Handoverにis_pinned(bool)を追加。DisplaySettingsテーブル(シングルトン、new_badge_days)を新設。
+- app/main.py: is_pinned列の簡易マイグレーション(Alembic未導入のため、起動時にinspectで列の有無を確認しALTER TABLEする方式)を追加。
+- app/routers/handovers.py: 一覧のorder_byをis_pinned.desc(), sort_orderに変更。PUT /{id}/pin, /{id}/unpin を追加。
+- app/routers/display_settings.py を新規作成（GET/PUT、ゴミ庫と同じシングルトンパターン）。
+- static/js/home.js: カードにピン留めボタン・NEWバッジを表示。ピン留め中のカードの上に「📌 ピン留め」ラベルを表示。
+- static/settings.html/js: 設定メニューに「表示設定」を追加し、NEW表示日数を編集・保存できるようにした。
+
+【動作確認】
+- ローカルAPI経由でピン留め・一覧の並び順（ピン留めが先頭に来ること）を確認。
+- Playwrightでピン留めボタンのトグル、NEWバッジの表示、表示設定の保存・リロード後の反映を確認。
+
+========================================
+■ 2026-07-04: 引継ぎカードをカテゴリをまたいで自由にドラッグ&ドロップで並び替え可能に変更
+
+【依頼内容】
+引継ぎカードを並び替えできるようにしてほしい。
+
+【仕様確認】
+- カテゴリ見出しでのグループ表示はやめて、全引継ぎを1本のリストにする（カテゴリはカードにタグ表示のみ）。同じカテゴリ・異なるカテゴリを問わず自由な順番で配置できるようにする。
+- 新規登録した引継ぎは常に一番上に表示する。
+- 対応済み一覧（設定画面）は並び替え対象外、従来通り作成日時順のまま。
+
+【実装内容】
+- app/models.py: Handoverにsort_order(int)を追加。
+- app/main.py: sort_order列の簡易マイグレーション（既存データはbackfillで従来の作成日時順を保つ）を追加。
+- app/routers/handovers.py: 一覧のorder_byをsort_order順に変更。PUT /reorder を追加（ドラッグ後のID順一括反映）。新規作成時は既存の最小sort_orderより小さい値を設定し常に先頭に来るようにした。
+- static/index.html: SortableJSを読み込み追加。
+- static/js/home.js: renderCategories()を廃止しrenderHandoverList()に変更。カテゴリ見出しを削除し、カードにカテゴリタグを表示。SortableJSでドラッグ&ドロップに対応。
+- static/css/style.css: カテゴリ見出し用CSSを削除し、カテゴリタグ・ドラッグハンドル用CSSを追加。
+
+【動作確認】
+- 新規作成が常に一番上に来ることをAPIで確認。
+- sort_order列が無い旧スキーマのSQLite DBを用意し、起動時に列が追加され既存データの順序が保たれることを確認（マイグレーションの後方互換性を検証）。
+- Playwrightでドラッグ&ドロップ後、リロードしても順序が保持されることを確認。
+
+========================================
+■ 2026-07-04: 売切商品・忘れ物に「対応済み」フロー・編集機能・一括削除を追加
+
+【依頼内容】
+売切商品・忘れ物の🗑（完全削除）を、引継ぎと同じ「対応済みにして一覧へ移動→再登録/完全削除」のフローに変更してほしい。編集機能も追加してほしい。また対応済み一覧に一括削除機能も追加してほしい。
+
+【仕様確認】
+- 売切商品・忘れ物それぞれの対応済み一覧は、設定メニューに「売切商品 対応済み」「忘れ物 対応済み」として別項目で追加する。
+- 編集はカード内でその場でテキスト入力に切り替わる操作感（カテゴリ名編集と同じ方式）。
+- 一括削除は「一覧全件を一撃で削除するボタンを1つ置く」方式。対象は引継ぎ・売切商品・忘れ物の対応済み一覧すべて。
+
+【実装内容】
+- app/models.py: SoldoutItem/LostItemにstatus(active/done)を追加。
+- app/main.py: status列の簡易マイグレーションを追加（_ensure_columnという汎用ヘルパーに統一、is_pinned列のマイグレーションもこちらに統合）。
+- app/routers/soldout.py, lost_items.py: statusによる一覧切り替え、PUT /{id}(名前編集), /{id}/done, /{id}/reopen を追加。
+- static/js/home.js: renderItemListCard()を編集・対応済みボタン対応に変更。startEditSimpleItem()でその場編集を実装。
+- static/settings.html/js: 「売切商品 対応済み」「忘れ物 対応済み」パネルを追加。renderSimpleDoneList()で対応済み一覧描画を共通化。appendBulkDeleteButton()で3つの対応済み一覧（引継ぎ・売切商品・忘れ物）すべてに「全て完全削除」ボタンを追加。
+
+【動作確認】
+- ローカルで追加→編集→対応済み→設定画面での再登録、一括削除（確認ダイアログ→一覧が空になること）をPlaywrightで確認。
+
+========================================
+■ 2026-07-04: ホーム画面の細かいUI改善（0件セクションの並び順・カードちらつき・はみ出し・タブレット表示）
+
+【依頼内容】
+・売切商品/忘れ物/引継ぎのうち0件（空表示）のセクションを、内容があるセクションより上に表示してほしい。
+・売切商品/忘れ物のカードが、初期読み込み時に一瞬空のカード枠として表示されてしまう。
+・売切商品/忘れ物の編集モードで「保存」「✓対応済み」ボタンがカードからはみ出す。
+・タブレットで見ると設定ボタン・追加ボタン(FAB)が小さい。
+
+【実装内容】
+- static/index.html: 売切商品・忘れ物・引継ぎの3セクションを#home-sectionsで包む。
+- static/js/home.js: reorderHomeSections()を追加。.handover-empty(空表示)の有無で判定し、空のセクションを上、内容ありを下に並べ替える処理をloadAll()の最後に実行。
+- static/index.html: soldout-card/lost-cardの初期class="card"を削除（内容がある時だけJS側で付与するよう統一。読み込み前の空カード枠のちらつきを解消）。
+- static/css/style.css: .simple-item__name-inputにmin-width:0, width:100%を追加（flexコンテナ内でinput要素が縮まずボタンがはみ出す問題を修正）。.simple-itemにflex-wrapも追加。
+- static/css/style.css: 700px以上の画面向けメディアクエリにFAB(56→68px)・設定ボタン(48→60px)拡大のルールを追加。
+
+【動作確認】
+- 375px幅のモバイル相当ビューポートで編集モードのボタンがはみ出さないことを確認。
+- 1024x768のタブレット相当ビューポートでボタンサイズが拡大されていることを確認。
+- 売切商品のみ1件登録した状態で、忘れ物・引継ぎ(空)が上、売切商品が下に表示されることを確認。
+
+========================================
+■ 2026-07-04: 設定画面の並び替え・戻る導線変更、ドラッグ操作性改善
+
+【依頼内容】
+・設定メニューの並びを「カテゴリ管理→売切商品対応済み→忘れ物対応済み→対応済み一覧→表示設定」に変更してほしい。
+・各パネルの「← 設定に戻る」ボタンを廃止し、代わりに上部の「設定」タイトルをタッチしたら一覧に戻れるようにしてほしい。
+・引継ぎカード・カテゴリ行のドラッグハンドル(≡)が小さくタッチしづらいので改善してほしい。
+
+【実装内容】
+- static/settings.html: 設定メニューの並び順を変更。各パネルの「← 設定に戻る」ボタンを削除。<h1>にid="settings-title"を付与。
+- static/js/settings.js: パネル遷移時の.panel-backへのイベント登録を削除し、#settings-titleのクリックでshowSettingsMenu()を呼ぶよう変更。
+- static/css/style.css: .panel-backの不要なCSSを削除。.handover-card__handle/.category-row__handleに、見た目のサイズ(font-size)は22pxに少し拡大しつつ、padding+負のmarginで見た目を変えずにタッチ当たり判定だけ広げる調整を追加。
+
+【動作確認】
+- 設定メニューの並び順、パネル表示中に「設定」タイトルタッチで一覧に戻れることをPlaywrightで確認。
+
+========================================
+■ 2026-07-04: 無料ホスティングをRenderからGoogle Cloud Runに移行（体感速度の根本改善）
+
+【依頼内容】
+Renderの無料プランはスリープ復帰に時間がかかり、GitHub Actionsによるkeep-alive pingも実行タイミングが不安定（GitHub Actionsのscheduleは実行時刻を保証しないため）で、体感速度の問題が解消しきらないとの相談。無料のままで良い別サービスへの移行を検討し、Google Cloud Runへの移行を実施（コールドスタートがRenderの約50秒に対し1〜3秒程度で済むため）。
+
+【実装内容】
+- リポジトリ直下にDockerfile・.dockerignoreを新規作成。python:3.13-slimベースで、Cloud RunがコンテナへPORT環境変数を渡す方式に対応（CMDでシェル展開）。
+- README.mdのデプロイ手順・技術構成の記載をRender→Cloud Run向けに更新。
+- ユーザー側でGoogle Cloudプロジェクト作成、請求先アカウント登録（Always Freeの範囲で運用、予算アラート$1を設定）、Cloud Run Admin API・Cloud Build APIを有効化。
+- Cloud RunでGitHubリポジトリ(kirbyOogui/hikitugi, mainブランチ)と連携した継続的デプロイのWeb Serviceを作成（リージョン: asia-southeast1、Neonと同じリージョンに合わせた）。環境変数(DATABASE_URL, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)を設定。
+- 初回ビルドは「4コミット分がpushされておらずDockerfileが存在しない状態でビルドされ失敗」という事象が発生。git push漏れが原因と判明し、pushしたところ正常にビルド・デプロイ成功。本番URL: https://hikitugi-558401250018.asia-southeast1.run.app
+- .github/workflows/keep-alive.yml のping先をRenderの旧URLからCloud RunのURLに変更（Cloud Run自体のコールドスタート対策としては必須ではないが、Neon DBのスリープ防止のため維持）。
+- 移行完了後、ユーザーがRenderのWeb Serviceを削除。旧URL(https://hikitugi.onrender.com)は404 Not Foundになったが、Cloud Run側とは完全に独立したサービスのため無関係かつ想定通りの挙動であることを説明。
+
+【動作確認】
+- Cloud RunのURLでホーム画面が正常表示されることを確認。
+- Cloud Buildの履歴で最新コミット(Dockerfile含む)のビルド成功、Deployステップ完了を確認。
+- ピン止め・並び替え等、直近に追加した機能が新環境でも反映されていることをユーザーが確認。
+
+【残課題・引き継ぎ事項】
+- 本番環境は現在 Google Cloud Run + Neon(PostgreSQL, asia-southeast1) + Cloudinary の構成。
+- Renderの旧Web Serviceは削除済み。
+
+========================================
+■ 2026-07-05: 設定画面の戻る導線をiPhoneの設定アプリ風に変更
+
+【依頼内容】
+設定画面内の「1つ戻る」の挙動を、iPhoneの設定アプリのようにしてほしいという依頼。
+一覧から「表示設定」等をタップして次画面に進むと、左上に「‹ 設定」と表示され、
+さらに奥の画面に進んだ場合は「‹ 表示設定」のように、常に1つ前の画面名が表示される想定。
+
+【実装内容】
+- static/settings.html: ヘッダー内の固定リンク「← ホームへ」に加えて、
+  非表示状態のボタン#settings-back-btn（初期テキスト「‹ 設定」）を追加。
+- static/js/settings.js: 画面遷移をスタック(settingsNav)で管理する方式に変更。
+  - 設定一覧をタップした項目のラベル文字列をタイトルとして積み、renderSettingsHeader()で
+    現在の画面タイトルを<h1>に、1つ前の画面タイトルを「‹ 〇〇」の形で戻るボタンに反映。
+  - 最上位（設定一覧）にいる時だけ「← ホームへ」リンクを表示し、それ以外はボタン側を表示する形に切り替え。
+  - 従来の「タイトルをタップで一覧に戻る」実装は削除し、戻るボタン経由の1階層ずつの遷移に統一。
+  - 現状はパネルがすべて設定一覧の直下（1階層）だが、スタック方式のため今後パネル内に
+    さらに子画面を追加しても同じ仕組みでiPhone風の戻る表示に対応できる。
+- static/css/style.css: .settings-header a のスタイルを.settings-back-linkと共通化し、
+  リンクとbuttonタグ両方で同じ見た目（下線なし・プライマリカラー・14px）になるよう調整。
+
+【動作確認】
+- 未実施（ローカルUI目視確認は未実行）。次回起動時にブラウザで、設定一覧→表示設定→戻るボタンの
+  表示切り替えを確認予定。
+
+========================================
+■ 2026-07-05: ゴミ庫トグルの初期表示ちらつきを修正
+
+【依頼内容】
+ゴミ庫が「満」の状態でリロードすると、実際のステータスをAPIから取得するまでの
+一瞬「空」表示になってしまう不具合の修正依頼。
+
+【原因】
+static/index.htmlのボタンが初期状態でdata-status="empty"・テキスト「空」を
+ハードコードしており、home.jsのloadAll()がAPIから実際のステータスを取得して
+renderGarbage()を呼ぶまでの間、実際は「満」でも常に「空」（緑色）が表示されていた。
+
+【実装内容】
+- static/index.html: ボタンの初期状態からdata-status="empty"と文言「空」を削除し、
+  空文字＋class="garbage-toggle__btn--loading"のニュートラルな状態に変更。
+- static/css/style.css: .garbage-toggle__btn--loadingを追加。背景を空(緑)/満(赤)
+  どちらの色にも寄せず--color-borderのグレーにし、テキストが空でもボタン幅が
+  潰れないようmin-width:40pxを指定。
+- static/js/home.js: renderGarbage()内で--loadingクラスを外すよう追加。
+
+【動作確認】
+- Playwrightでネットワークを800ms遅延させた状態でトップページを開き、
+  fetch完了前は「テキスト空・grayのloading状態」、fetch完了後は実際のステータス
+  （今回は本番相当で「満」）が赤で正しく表示されることをスクリーンショットで確認。
+  誤った「空」表示が一切出ないことを確認済み。

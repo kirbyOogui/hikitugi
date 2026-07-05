@@ -82,6 +82,7 @@ function reorderHomeSections() {
 
 function renderGarbage(status) {
   const btn = document.getElementById("garbage-toggle-btn");
+  btn.classList.remove("garbage-toggle__btn--loading");
   btn.dataset.status = status;
   btn.textContent = status === "empty" ? "空" : "満";
 }

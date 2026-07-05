@@ -301,24 +301,57 @@ document.getElementById("display-settings-form").addEventListener("submit", asyn
 });
 
 // --- 設定トップ(項目一覧) ⇔ 詳細パネルの切り替え ---
-// 今後設定項目が増えても、トップは常に項目一覧のみを表示する構成にする。
+// iPhoneの設定アプリのように、画面を移動するたびに戻るボタンへ
+// 1つ前の画面のタイトルを表示する（例: 設定 → 表示設定 なら「‹ 設定」）。
 
-function showSettingsMenu() {
-  document.querySelectorAll(".settings-panel").forEach((panel) => panel.classList.add("hidden"));
-  document.getElementById("settings-menu").classList.remove("hidden");
-}
+const settingsNav = [{ screenId: "settings-menu", title: "設定" }];
+const settingsHomeLink = document.getElementById("settings-home-link");
+const settingsBackBtn = document.getElementById("settings-back-btn");
+const settingsTitleEl = document.getElementById("settings-title");
 
-function showSettingsPanel(panelId) {
+function showSettingsScreen(screenId) {
   document.getElementById("settings-menu").classList.add("hidden");
   document.querySelectorAll(".settings-panel").forEach((panel) => panel.classList.add("hidden"));
-  document.getElementById(panelId).classList.remove("hidden");
+  document.getElementById(screenId).classList.remove("hidden");
+}
+
+function renderSettingsHeader() {
+  const current = settingsNav[settingsNav.length - 1];
+  settingsTitleEl.textContent = current.title;
+
+  if (settingsNav.length === 1) {
+    settingsHomeLink.classList.remove("hidden");
+    settingsBackBtn.classList.add("hidden");
+  } else {
+    const previous = settingsNav[settingsNav.length - 2];
+    settingsHomeLink.classList.add("hidden");
+    settingsBackBtn.classList.remove("hidden");
+    settingsBackBtn.textContent = `‹ ${previous.title}`;
+  }
+}
+
+function navigateToSettingsScreen(screenId, title) {
+  settingsNav.push({ screenId, title });
+  showSettingsScreen(screenId);
+  renderSettingsHeader();
+}
+
+function navigateSettingsBack() {
+  if (settingsNav.length === 1) return;
+  settingsNav.pop();
+  showSettingsScreen(settingsNav[settingsNav.length - 1].screenId);
+  renderSettingsHeader();
 }
 
 document.querySelectorAll(".settings-menu-item").forEach((btn) => {
-  btn.addEventListener("click", () => showSettingsPanel(btn.dataset.target));
+  btn.addEventListener("click", () => {
+    const title = btn.querySelector("span").textContent;
+    navigateToSettingsScreen(btn.dataset.target, title);
+  });
 });
-// パネル表示中は、上部の「設定」タイトルをタッチすると一覧に戻れるようにする
-document.getElementById("settings-title").addEventListener("click", showSettingsMenu);
+settingsBackBtn.addEventListener("click", navigateSettingsBack);
+
+renderSettingsHeader();
 
 // --- 初期化 ---
 
