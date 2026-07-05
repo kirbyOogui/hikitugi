@@ -3,17 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>引継書</title>
+  <link rel="icon" type="image/png" href="/static/icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="/static/manifest.json" />
+  <!-- iPhoneでホーム画面に追加した際、Safariのアドレスバー無しで
+       本物のアプリのように全画面起動させるための指定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="引継書" />
+  <meta name="theme-color" content="#2563eb" id="theme-color-meta" />
   <!-- カラーテーマ切り替え時に、次回アクセス時デフォルト配色が一瞬表示されるのを防ぐため
        サーバーからの設定取得より前に、保存済みのテーマを同期的に反映する -->
   <script>
     (function () {
       var theme = localStorage.getItem("colorTheme");
-      if (theme) document.documentElement.dataset.theme = theme;
+      if (!theme) return;
+      document.documentElement.dataset.theme = theme;
+      var bgColors = {
+        default: "#f5f6f8", navy: "#eef1f6", green: "#f2f7f3", kaikatsu: "#fdf5ec",
+        purple: "#f7f5fb", mono: "#f4f4f5", dark: "#14171c",
+      };
+      if (bgColors[theme]) {
+        document.getElementById("theme-color-meta").content = bgColors[theme];
+      }
     })();
   </script>
-  <title>引継書</title>
-  <link rel="icon" type="image/png" href="/static/icons/favicon-32.png" />
-  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png" />
   <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>

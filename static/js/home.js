@@ -6,6 +6,7 @@
 
 let categoriesCache = [];
 let handoverSortableInstance = null;
+let handoverSortableInstanceOthers = null;
 let displaySettingsCache = { new_badge_days: 2 };
 
 // 引継ぎ編集シートの状態。nullなら新規追加、値があればそのIDを編集中。
@@ -213,6 +214,8 @@ function renderLostItems(items) {
 }
 
 // --- 引継ぎ一覧（カテゴリをまたいで自由に並び替え可能な1本のリスト） ---
+// ピン留め済み/未ピン留めは別々のSortableインスタンスにし、ドラッグでは
+// 互いのグループを越えて並び替えられないようにする（ピン留めは常に上に固定）。
 
 function renderHandoverList(handovers) {
   const container = document.getElementById("categories-container");
@@ -226,40 +229,74 @@ function renderHandoverList(handovers) {
     return;
   }
 
-  const list = document.createElement("div");
-  list.className = "handover-list";
+  const pinned = handovers.filter((h) => h.is_pinned);
+  const others = handovers.filter((h) => !h.is_pinned);
 
-  if (handovers.some((h) => h.is_pinned)) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "handover-list";
+
+  let pinnedListEl = null;
+  if (pinned.length > 0) {
     const label = document.createElement("div");
     label.className = "handover-list__pinned-label";
     label.textContent = "📌 ピン留め";
-    list.appendChild(label);
+    wrapper.appendChild(label);
+
+    pinnedListEl = document.createElement("div");
+    pinnedListEl.className = "handover-list";
+    for (const handover of pinned) {
+      pinnedListEl.appendChild(renderHandoverCard(handover));
+    }
+    wrapper.appendChild(pinnedListEl);
   }
 
-  for (const handover of handovers) {
-    list.appendChild(renderHandoverCard(handover));
+  const othersListEl = document.createElement("div");
+  othersListEl.className = "handover-list";
+  for (const handover of others) {
+    othersListEl.appendChild(renderHandoverCard(handover));
   }
-  container.appendChild(list);
+  wrapper.appendChild(othersListEl);
+
+  container.appendChild(wrapper);
 
   // 既存のSortableインスタンスがあれば破棄してから作り直す（再描画のたびに二重登録を防ぐ）
   if (handoverSortableInstance) {
     handoverSortableInstance.destroy();
+    handoverSortableInstance = null;
   }
-  handoverSortableInstance = new Sortable(list, {
+  if (handoverSortableInstanceOthers) {
+    handoverSortableInstanceOthers.destroy();
+    handoverSortableInstanceOthers = null;
+  }
+
+  const submitReorder = async () => {
+    const pinnedIds = pinnedListEl
+      ? Array.from(pinnedListEl.querySelectorAll(".handover-card")).map((el) => Number(el.dataset.id))
+      : [];
+    const otherIds = Array.from(othersListEl.querySelectorAll(".handover-card")).map((el) =>
+      Number(el.dataset.id)
+    );
+    try {
+      await api.reorderHandovers([...pinnedIds, ...otherIds]);
+    } catch (err) {
+      alert(err.message);
+      await loadAll();
+    }
+  };
+
+  if (pinnedListEl) {
+    handoverSortableInstance = new Sortable(pinnedListEl, {
+      handle: ".handover-card__handle",
+      draggable: ".handover-card",
+      animation: 150,
+      onEnd: submitReorder,
+    });
+  }
+  handoverSortableInstanceOthers = new Sortable(othersListEl, {
     handle: ".handover-card__handle",
     draggable: ".handover-card",
     animation: 150,
-    onEnd: async () => {
-      const order = Array.from(list.querySelectorAll(".handover-card")).map((el) =>
-        Number(el.dataset.id)
-      );
-      try {
-        await api.reorderHandovers(order);
-      } catch (err) {
-        alert(err.message);
-        await loadAll();
-      }
-    },
+    onEnd: submitReorder,
   });
 }
 
