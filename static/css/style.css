@@ -386,8 +386,8 @@ textarea {
   z-index: -1;
   left: -2px;
   right: -2px;
-  top: 40%;
-  bottom: -3px;
+  top: 80%;
+  bottom: -1px;
   background: var(--color-date-highlight);
   border-radius: 2px;
 }
