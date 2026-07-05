@@ -9,6 +9,9 @@ const THEME_PATTERNS = [
   { key: "navy", label: "パターン2", swatch: "#1e3a8a" },
   { key: "green", label: "パターン3", swatch: "#15803d" },
   { key: "kaikatsu", label: "パターン4", swatch: "#e8630c" },
+  { key: "purple", label: "パターン5", swatch: "#7c3aed" },
+  { key: "mono", label: "パターン6", swatch: "#27272a" },
+  { key: "dark", label: "パターン7", swatch: "#1e232b" },
 ];
 
 /**

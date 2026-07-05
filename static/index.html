@@ -54,8 +54,13 @@
     <button id="fab-toggle" class="fab" aria-label="追加メニューを開く">＋</button>
   </div>
 
-  <!-- 設定画面への導線 -->
-  <a href="/settings" class="settings-fab" aria-label="設定">⚙</a>
+  <!-- 設定画面への導線。絵文字の歯車(⚙)は環境によって傾いて表示されるため、
+       常に真正面を向いた歯車になるようSVGで自前描画する -->
+  <a href="/settings" class="settings-fab" aria-label="設定">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path fill-rule="evenodd" d="M 10.16 4.63 L 10.44 2.12 L 13.56 2.12 L 13.84 4.63 L 15.91 5.49 L 17.88 3.91 L 20.09 6.12 L 18.51 8.09 L 19.37 10.16 L 21.88 10.44 L 21.88 13.56 L 19.37 13.84 L 18.51 15.91 L 20.09 17.88 L 17.88 20.09 L 15.91 18.51 L 13.84 19.37 L 13.56 21.88 L 10.44 21.88 L 10.16 19.37 L 8.09 18.51 L 6.12 20.09 L 3.91 17.88 L 5.49 15.91 L 4.63 13.84 L 2.12 13.56 L 2.12 10.44 L 4.63 10.16 L 5.49 8.09 L 3.91 6.12 L 6.12 3.91 L 8.09 5.49 Z M 8.4 12 A 3.6 3.6 0 1 0 15.6 12 A 3.6 3.6 0 1 0 8.4 12 Z" />
+    </svg>
+  </a>
 
   <!-- 引継ぎ追加シート -->
   <div id="sheet-overlay" class="sheet-overlay hidden">

@@ -153,7 +153,7 @@ class LostItemOut(BaseModel):
 # --- 表示設定 ---------------------------------------------------------
 
 # カラーテーマのキー。static/css/style.cssの[data-theme="..."]と対応させる。
-ColorTheme = Literal["default", "navy", "green", "kaikatsu"]
+ColorTheme = Literal["default", "navy", "green", "kaikatsu", "purple", "mono", "dark"]
 
 
 class DisplaySettingsUpdate(BaseModel):
